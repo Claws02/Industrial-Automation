@@ -1,0 +1,1143 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Digital Factory Twin — Course Tracker</title>
+<link href="https://fonts.googleapis.com/css2?family=Libre+Baskerville:ital,wght@0,400;0,700;1,400&family=IBM+Plex+Mono:wght@400;500&family=Source+Sans+3:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+:root {
+  --cream:#faf9f6;--paper:#ffffff;--ink:#1a1916;--ink-muted:#5a5856;--ink-faint:#9a9896;
+  --rule:#e8e5df;--rule-strong:#d0cdc6;--accent:#1a4a8a;--accent-light:#e8eef8;--accent-mid:#3a6ab0;
+  --success:#2d6a4f;--success-light:#e8f5ef;--warn:#b5621a;--warn-light:#fdf0e4;
+  --purple:#5b3fa0;--purple-light:#f0ebff;
+  --font-serif:'Libre Baskerville',Georgia,serif;--font-sans:'Source Sans 3',system-ui,sans-serif;--font-mono:'IBM Plex Mono',monospace;
+  --radius:6px;--radius-lg:10px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:var(--font-sans);background:var(--cream);color:var(--ink);font-size:15px;line-height:1.6;min-height:100vh;}
+
+/* HEADER */
+.site-header{background:var(--paper);border-bottom:1px solid var(--rule);padding:0 2rem;position:sticky;top:0;z-index:100;display:flex;align-items:center;justify-content:space-between;height:60px;}
+.brand{display:flex;align-items:baseline;gap:10px;}
+.brand h1{font-family:var(--font-serif);font-size:17px;font-weight:700;letter-spacing:-.01em;}
+.brand .sub{font-size:12px;color:var(--ink-faint);font-family:var(--font-mono);letter-spacing:.04em;}
+.header-actions{display:flex;gap:8px;align-items:center;}
+
+/* LAYOUT */
+.layout{display:grid;grid-template-columns:240px 1fr;min-height:calc(100vh - 60px);}
+
+/* SIDEBAR */
+.sidebar{background:var(--paper);border-right:1px solid var(--rule);padding:1.5rem 0;position:sticky;top:60px;height:calc(100vh - 60px);overflow-y:auto;}
+.sb-lbl{font-size:10px;font-family:var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);padding:0 1.25rem .5rem;margin-top:1rem;}
+.sb-item{display:flex;align-items:center;gap:10px;padding:7px 1.25rem;cursor:pointer;font-size:13.5px;color:var(--ink-muted);border-left:2px solid transparent;transition:all .12s;user-select:none;}
+.sb-item:hover{background:var(--cream);color:var(--ink);}
+.sb-item.active{background:var(--accent-light);color:var(--accent);border-left-color:var(--accent);font-weight:500;}
+.sb-item .wn{font-family:var(--font-mono);font-size:11px;min-width:28px;color:var(--ink-faint);}
+.sb-item.active .wn{color:var(--accent-mid);}
+.sb-pb{width:28px;height:3px;background:var(--rule);border-radius:2px;overflow:hidden;margin-left:auto;}
+.sb-pb .f{height:100%;border-radius:2px;transition:width .3s;}
+
+/* MAIN */
+.main{padding:2rem 2.5rem;max-width:960px;}
+
+/* DASHBOARD */
+.dash-hdr{margin-bottom:2rem;border-bottom:1px solid var(--rule);padding-bottom:1.5rem;}
+.dash-hdr h2{font-family:var(--font-serif);font-size:26px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;}
+.dash-hdr p{color:var(--ink-muted);font-size:14px;}
+.stat-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:2rem;}
+.stat-card{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:1rem 1.25rem;}
+.stat-card .lbl{font-size:11px;font-family:var(--font-mono);letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;}
+.stat-card .val{font-size:28px;font-family:var(--font-serif);font-weight:700;color:var(--ink);line-height:1;}
+.stat-card .val.acc{color:var(--accent);}
+.stat-card .val.suc{color:var(--success);}
+.overall-prog{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:2rem;}
+.overall-prog .top{display:flex;justify-content:space-between;align-items:baseline;margin-bottom:10px;}
+.overall-prog .top span:first-child{font-size:13px;font-weight:500;}
+.overall-prog .top span:last-child{font-size:13px;font-family:var(--font-mono);color:var(--ink-muted);}
+.prog-track{height:8px;background:var(--rule);border-radius:4px;overflow:hidden;}
+.prog-fill{height:100%;background:linear-gradient(90deg,var(--accent) 0%,var(--accent-mid) 100%);border-radius:4px;transition:width .4s ease;}
+.weeks-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;}
+.week-card{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:1rem 1.1rem;cursor:pointer;transition:all .15s;position:relative;}
+.week-card:hover{border-color:var(--rule-strong);box-shadow:0 2px 8px rgba(0,0,0,.07);transform:translateY(-1px);}
+.week-card.complete{border-left:3px solid var(--success);}
+.week-card.in-progress{border-left:3px solid var(--accent);}
+.week-card .ct{display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;}
+.week-card .wb{font-family:var(--font-mono);font-size:10px;letter-spacing:.06em;text-transform:uppercase;color:var(--ink-faint);background:var(--cream);padding:2px 7px;border-radius:3px;}
+.week-card .sd{width:8px;height:8px;border-radius:50%;background:var(--rule-strong);margin-top:4px;}
+.week-card .sd.complete{background:var(--success);}
+.week-card .sd.in-progress{background:var(--accent);}
+.week-card h3{font-family:var(--font-serif);font-size:13.5px;font-weight:700;line-height:1.35;margin-bottom:8px;}
+.week-card .mp{height:3px;background:var(--rule);border-radius:2px;overflow:hidden;margin-bottom:6px;}
+.week-card .mp .f{height:100%;border-radius:2px;transition:width .3s;}
+.week-card .mp .f.complete{background:var(--success);}
+.week-card .mp .f.in-progress{background:var(--accent);}
+.week-card .cm{font-size:11px;color:var(--ink-faint);display:flex;justify-content:space-between;}
+
+/* VIEWS */
+.week-detail{display:none;}
+.week-detail.active{display:block;}
+.dash-view{display:block;}
+.dash-view.hidden{display:none;}
+
+/* DETAIL HEADER */
+.det-hdr{margin-bottom:1.5rem;border-bottom:1px solid var(--rule);padding-bottom:1.5rem;}
+.breadcrumb{font-size:12px;color:var(--ink-faint);font-family:var(--font-mono);margin-bottom:8px;cursor:pointer;display:inline-flex;align-items:center;gap:4px;}
+.breadcrumb:hover{color:var(--accent);}
+.det-hdr h2{font-family:var(--font-serif);font-size:24px;font-weight:700;letter-spacing:-.02em;margin-bottom:4px;}
+.week-tag{display:inline-block;font-family:var(--font-mono);font-size:11px;letter-spacing:.06em;background:var(--accent-light);color:var(--accent);padding:3px 9px;border-radius:3px;margin-bottom:6px;}
+.det-hdr .wdesc{font-size:14px;color:var(--ink-muted);margin-top:6px;}
+
+/* TABS */
+.tab-bar{display:flex;border-bottom:1px solid var(--rule);margin-bottom:1.5rem;gap:0;}
+.tab-btn{padding:9px 18px;font-size:13.5px;font-family:var(--font-sans);color:var(--ink-muted);border:none;background:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-1px;transition:all .12s;font-weight:400;}
+.tab-btn:hover{color:var(--ink);}
+.tab-btn.active{color:var(--accent);border-bottom-color:var(--accent);font-weight:500;}
+.tab-pane{display:none;}
+.tab-pane.active{display:block;}
+
+/* MATERIALS */
+.mat-overview{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:1.25rem 1.5rem;margin-bottom:1.25rem;}
+.mat-overview h4{font-family:var(--font-serif);font-size:16px;font-weight:700;margin-bottom:8px;}
+.mat-overview p{font-size:14px;color:var(--ink-muted);line-height:1.7;}
+.mat-overview ul{padding-left:1.2rem;font-size:14px;color:var(--ink-muted);line-height:1.8;}
+
+.concepts-grid{display:grid;grid-template-columns:repeat(2,1fr);gap:10px;margin-bottom:1.25rem;}
+.concept-card{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);padding:1rem 1.1rem;}
+.concept-card .cc-label{font-size:10px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:6px;}
+.concept-card h5{font-size:13.5px;font-weight:600;margin-bottom:4px;}
+.concept-card p{font-size:13px;color:var(--ink-muted);line-height:1.55;}
+
+.videos-section{margin-bottom:1.25rem;}
+.video-card{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius);padding:.9rem 1rem;margin-bottom:8px;display:flex;gap:12px;align-items:flex-start;}
+.video-card .vicon{width:36px;height:36px;min-width:36px;background:#f0ebff;border-radius:var(--radius);display:flex;align-items:center;justify-content:center;font-size:16px;}
+.video-card .vinfo{flex:1;}
+.video-card .vtitle{font-size:13.5px;font-weight:500;color:var(--accent);text-decoration:none;display:block;margin-bottom:2px;}
+.video-card .vtitle:hover{text-decoration:underline;}
+.video-card .vsrc{font-size:11px;color:var(--ink-faint);font-family:var(--font-mono);}
+.video-card .vdesc{font-size:12.5px;color:var(--ink-muted);margin-top:3px;line-height:1.5;}
+
+.lab-spec{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1.25rem;}
+.lab-spec-hdr{background:var(--ink);color:white;padding:.75rem 1.1rem;display:flex;align-items:center;gap:8px;}
+.lab-spec-hdr .ls-icon{font-size:14px;}
+.lab-spec-hdr h4{font-size:14px;font-weight:600;letter-spacing:.01em;}
+.lab-spec-body{padding:1.1rem;}
+.spec-block{margin-bottom:1.1rem;}
+.spec-block:last-child{margin-bottom:0;}
+.spec-label{font-size:10px;font-family:var(--font-mono);letter-spacing:.1em;text-transform:uppercase;margin-bottom:6px;}
+.spec-label.constraints{color:var(--warn);}
+.spec-label.problems{color:#8b3a9e;}
+.spec-label.outputs{color:var(--success);}
+.spec-label.params{color:var(--accent);}
+.spec-list{list-style:none;padding:0;}
+.spec-list li{font-size:13.5px;color:var(--ink-muted);padding:4px 0 4px 18px;position:relative;border-bottom:1px solid var(--rule);line-height:1.5;}
+.spec-list li:last-child{border-bottom:none;}
+.spec-list li::before{position:absolute;left:0;top:6px;font-size:11px;}
+.spec-list.constraints li::before{content:'!';color:var(--warn);font-weight:700;}
+.spec-list.problems li::before{content:'?';color:#8b3a9e;font-weight:700;}
+.spec-list.outputs li::before{content:'✓';color:var(--success);}
+.spec-list.params li::before{content:'→';color:var(--accent);}
+
+.deliverable-box{background:var(--warn-light);border:1px solid #e8c090;border-radius:var(--radius);padding:10px 14px;margin-bottom:1.25rem;}
+.deliverable-box .dlabel{font-size:10px;font-family:var(--font-mono);letter-spacing:.08em;text-transform:uppercase;color:var(--warn);margin-bottom:3px;}
+.deliverable-box p{font-size:13.5px;font-weight:500;}
+
+/* SECTION TITLES */
+.sec-title{font-size:11px;font-family:var(--font-mono);letter-spacing:.1em;text-transform:uppercase;color:var(--ink-faint);margin-bottom:.75rem;margin-top:1.75rem;display:flex;align-items:center;gap:8px;}
+.sec-title::after{content:'';flex:1;height:1px;background:var(--rule);}
+
+/* TASKS */
+.task-group{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);overflow:hidden;margin-bottom:1rem;}
+.tg-hdr{display:flex;align-items:center;gap:10px;padding:10px 1rem;background:var(--cream);border-bottom:1px solid var(--rule);cursor:pointer;user-select:none;}
+.tg-hdr h4{font-size:13px;font-weight:600;flex:1;}
+.tg-hdr .gc{font-size:11px;font-family:var(--font-mono);color:var(--ink-faint);}
+.tg-hdr .chev{font-size:12px;color:var(--ink-faint);transition:transform .2s;}
+.tg-hdr.collapsed .chev{transform:rotate(-90deg);}
+.tg-body{padding:4px 0;}
+.tg-body.hidden{display:none;}
+.task-item{display:flex;align-items:flex-start;gap:10px;padding:8px 1rem;border-bottom:1px solid var(--rule);transition:background .1s;}
+.task-item:last-child{border-bottom:none;}
+.task-item:hover{background:var(--cream);}
+.task-item.done .task-lbl{text-decoration:line-through;color:var(--ink-faint);}
+.task-cb{width:16px;height:16px;min-width:16px;border:1.5px solid var(--rule-strong);border-radius:3px;cursor:pointer;display:flex;align-items:center;justify-content:center;margin-top:2px;transition:all .12s;background:var(--paper);}
+.task-cb.checked{background:var(--success);border-color:var(--success);}
+.task-cb.checked::after{content:'';width:9px;height:5px;border-left:1.5px solid white;border-bottom:1.5px solid white;transform:rotate(-45deg) translateY(-1px);}
+.task-content{flex:1;}
+.task-lbl{font-size:13.5px;cursor:pointer;}
+.note-toggle{font-size:11px;color:var(--accent);cursor:pointer;font-family:var(--font-mono);margin-top:3px;display:inline-flex;align-items:center;gap:4px;opacity:.7;transition:opacity .1s;}
+.note-toggle:hover{opacity:1;}
+.note-area{margin-top:8px;display:none;}
+.note-area.open{display:block;}
+
+/* EDITOR */
+.editor-toolbar{display:flex;gap:2px;padding:5px 8px;background:var(--cream);border:1px solid var(--rule);border-bottom:none;border-radius:var(--radius) var(--radius) 0 0;flex-wrap:wrap;}
+.tb-btn{background:none;border:none;padding:3px 7px;border-radius:3px;cursor:pointer;font-size:12px;color:var(--ink-muted);font-family:var(--font-mono);transition:all .1s;line-height:1.4;}
+.tb-btn:hover{background:var(--rule);color:var(--ink);}
+.editor-area{border:1px solid var(--rule);border-radius:0 0 var(--radius) var(--radius);min-height:80px;padding:10px 12px;font-size:13.5px;font-family:var(--font-sans);color:var(--ink);outline:none;background:var(--paper);line-height:1.6;}
+.editor-area:focus{border-color:var(--accent);}
+.editor-area[contenteditable]{cursor:text;}
+.editor-area ul,.editor-area ol{padding-left:1.2rem;}
+.editor-area code{font-family:var(--font-mono);font-size:12px;background:var(--cream);padding:1px 4px;border-radius:3px;}
+
+/* IMAGES */
+.img-zone{border:1.5px dashed var(--rule-strong);border-radius:var(--radius);padding:14px;text-align:center;cursor:pointer;transition:all .15s;background:var(--cream);margin-top:8px;}
+.img-zone:hover{border-color:var(--accent);background:var(--accent-light);}
+.img-zone .zt{font-size:12px;color:var(--ink-faint);font-family:var(--font-mono);}
+.img-zone input{display:none;}
+.imgs-grid{display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;}
+.img-thumb{position:relative;width:100px;height:70px;border-radius:var(--radius);overflow:hidden;border:1px solid var(--rule);}
+.img-thumb img{width:100%;height:100%;object-fit:cover;}
+.img-thumb .rm{position:absolute;top:3px;right:3px;width:18px;height:18px;background:rgba(0,0,0,.55);color:white;border:none;border-radius:50%;cursor:pointer;font-size:11px;display:flex;align-items:center;justify-content:center;}
+
+/* WEEK NOTES */
+.wk-notes-wrap{background:var(--paper);border:1px solid var(--rule);border-radius:var(--radius-lg);overflow:hidden;}
+
+/* BUTTONS */
+.btn{display:inline-flex;align-items:center;gap:6px;padding:6px 14px;border-radius:var(--radius);font-size:13px;font-family:var(--font-sans);font-weight:500;cursor:pointer;transition:all .12s;border:1px solid var(--rule-strong);background:var(--paper);color:var(--ink);}
+.btn:hover{background:var(--cream);border-color:var(--ink-faint);}
+.btn.primary{background:var(--accent);color:white;border-color:var(--accent);}
+.btn.primary:hover{background:var(--accent-mid);}
+.btn.sm{padding:4px 10px;font-size:12px;}
+
+/* MODAL */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(20,18,14,.45);z-index:200;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--paper);border-radius:var(--radius-lg);padding:2rem;width:480px;max-width:95vw;box-shadow:0 4px 20px rgba(0,0,0,.12);}
+.modal h3{font-family:var(--font-serif);font-size:18px;font-weight:700;margin-bottom:6px;}
+.modal p{font-size:13px;color:var(--ink-muted);margin-bottom:1.25rem;}
+.export-options{display:flex;flex-direction:column;gap:8px;margin-bottom:1.25rem;}
+.export-opt{display:flex;align-items:flex-start;gap:10px;padding:10px 12px;border:1px solid var(--rule);border-radius:var(--radius);cursor:pointer;transition:all .12s;}
+.export-opt:hover{border-color:var(--accent);background:var(--accent-light);}
+.export-opt input{margin-top:3px;accent-color:var(--accent);}
+.export-opt .ot{font-size:13.5px;font-weight:500;}
+.export-opt .od{font-size:12px;color:var(--ink-faint);}
+.export-scope{margin-bottom:1.25rem;}
+.export-scope label{font-size:12px;font-family:var(--font-mono);color:var(--ink-faint);display:block;margin-bottom:6px;letter-spacing:.06em;text-transform:uppercase;}
+.export-scope select{width:100%;padding:7px 10px;border:1px solid var(--rule-strong);border-radius:var(--radius);font-size:13px;font-family:var(--font-sans);color:var(--ink);background:var(--paper);}
+.modal-actions{display:flex;justify-content:flex-end;gap:8px;padding-top:1rem;border-top:1px solid var(--rule);}
+
+/* TOAST */
+.toast{position:fixed;bottom:24px;right:24px;background:var(--ink);color:white;font-size:13px;padding:10px 18px;border-radius:var(--radius);z-index:300;opacity:0;transform:translateY(8px);transition:all .2s;pointer-events:none;}
+.toast.show{opacity:1;transform:translateY(0);}
+
+@media(max-width:768px){.layout{grid-template-columns:1fr;}.sidebar{display:none;}.stat-grid{grid-template-columns:repeat(2,1fr);}.weeks-grid{grid-template-columns:repeat(2,1fr);}.main{padding:1rem 1.25rem;}.concepts-grid{grid-template-columns:1fr;}}
+</style>
+</head>
+<body>
+
+<header class="site-header">
+  <div class="brand">
+    <h1>Digital Factory Twin</h1>
+    <span class="sub">// Course Tracker</span>
+  </div>
+  <div class="header-actions">
+    <button class="btn sm" onclick="openExportModal()">&#8595; Export for OneNote</button>
+    <button class="btn sm" onclick="clearAllData()">Reset</button>
+  </div>
+</header>
+
+<div class="layout">
+  <nav class="sidebar" id="sidebar"></nav>
+  <main class="main">
+    <div id="dash-view" class="dash-view">
+      <div class="dash-hdr">
+        <h2>Course Overview</h2>
+        <p>Smart Automated Bottling Plant Digital Twin — 15-week curriculum</p>
+      </div>
+      <div class="stat-grid">
+        <div class="stat-card"><div class="lbl">Weeks Total</div><div class="val">15</div></div>
+        <div class="stat-card"><div class="lbl">Completed</div><div class="val suc" id="stat-complete">0</div></div>
+        <div class="stat-card"><div class="lbl">In Progress</div><div class="val acc" id="stat-inprog">0</div></div>
+        <div class="stat-card"><div class="lbl">Tasks Done</div><div class="val" id="stat-tasks">0%</div></div>
+      </div>
+      <div class="overall-prog">
+        <div class="top"><span>Overall Progress</span><span id="overall-pct">0 / 0 tasks</span></div>
+        <div class="prog-track"><div class="prog-fill" id="overall-bar" style="width:0%"></div></div>
+      </div>
+      <div class="weeks-grid" id="weeks-grid"></div>
+    </div>
+    <div id="week-views"></div>
+  </main>
+</div>
+
+<div class="modal-overlay" id="export-modal">
+  <div class="modal">
+    <h3>Export for OneNote</h3>
+    <p>Choose your export format and scope.</p>
+    <div class="export-options">
+      <label class="export-opt"><input type="radio" name="efmt" value="clipboard" checked><div><div class="ot">Copy as HTML to clipboard</div><div class="od">Paste directly into OneNote — preserves formatting and checkboxes.</div></div></label>
+      <label class="export-opt"><input type="radio" name="efmt" value="docx"><div><div class="ot">Download as .rtf (Word)</div><div class="od">Open in Word, then paste into OneNote with full formatting.</div></div></label>
+      <label class="export-opt"><input type="radio" name="efmt" value="text"><div><div class="ot">Plain text export</div><div class="od">Clean plain-text for any notes app.</div></div></label>
+    </div>
+    <div class="export-scope">
+      <label>Scope</label>
+      <select id="export-scope">
+        <option value="all">All 15 weeks</option>
+        <option value="completed">Completed weeks only</option>
+        <option value="current">Current week only</option>
+      </select>
+    </div>
+    <div class="modal-actions">
+      <button class="btn" onclick="closeExportModal()">Cancel</button>
+      <button class="btn primary" onclick="runExport()">Export</button>
+    </div>
+  </div>
+</div>
+<div class="toast" id="toast"></div>
+
+<script>
+// ─── WEEK DATA ────────────────────────────────────────────────────────────────
+const WEEKS = [
+{
+  id:1, title:"Intro to Industrial Control + Digital Twin Mindset",
+  desc:"Establish your model-based design foundation. Understand what a digital twin is, why it matters, and build your first closed-loop system in Simulink.",
+  deliverable:"Closed-loop DC motor speed control model",
+  overview:"This week bridges the conceptual gap between traditional PLC-based automation and the model-based design philosophy you will use throughout the course. You will learn how engineers build virtual replicas of physical systems — digital twins — to test, validate, and optimize before any hardware is built. By the end of the week you will have Simulink running, understand block diagrams, signals, and feedback loops, and have simulated a working DC motor speed controller.",
+  concepts:[
+    {label:"Core Theory",title:"What is a Digital Twin?",body:"A digital twin is a high-fidelity virtual model of a physical system that evolves in real time with its counterpart. Industry 4.0 uses twins for predictive maintenance, optimization, and design validation."},
+    {label:"Core Theory",title:"Model-Based Design (MBD)",body:"MBD is a workflow where a system model (in Simulink) acts as the single source of truth — replacing paper specs and manual coding. You design, simulate, test, and auto-generate code all from the same model."},
+    {label:"Control Theory",title:"Closed-Loop Feedback Control",body:"A feedback controller measures the output (e.g., motor speed), compares it to a setpoint, and applies a corrective input (voltage). This error-driven loop is the foundation of all industrial control."},
+    {label:"Tool",title:"Simulink Block Diagrams",body:"Simulink models systems as connected blocks — each block is a math operation, signal, or physical component. Signals flow between blocks like wires, representing physical quantities over time."},
+  ],
+  videos:[
+    {title:"Simulink Onramp (Free — MathWorks Official)",url:"https://matlabacademy.mathworks.com/details/simulink-onramp/simulink",src:"MathWorks Academy",desc:"Self-paced ~3 hr interactive course. Start here. Build real models, get instant feedback, earn a certificate."},
+    {title:"What is Model-Based Design?",url:"https://www.mathworks.com/videos/what-is-model-based-design-101023.html",src:"MathWorks",desc:"10-min intro to why MBD replaced manual coding in industry."},
+    {title:"DC Motor Control with PID in MATLAB Simulink",url:"https://www.youtube.com/watch?v=xaRcc5biy_E",src:"YouTube",desc:"Models a DC motor in Simulink, builds PID control, shows shaft position response — directly matches this week's lab."},
+    {title:"Control Tutorials for MATLAB and Simulink — Motor Speed",url:"https://ctms.engin.umich.edu/CTMS/index.php?example=MotorSpeed&section=SystemModeling",src:"UMich CTMS",desc:"University of Michigan's gold-standard tutorial. Derives DC motor transfer function from first principles and walks through Simulink implementation."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Read: What is industrial automation?","Study model-based design (MBD) workflow","Understand feedback vs feedforward control","Complete Simulink Onramp (required — ~3 hrs)","Start Simscape Onramp"]},
+    {name:"Lab — DC Motor Speed Control",tasks:["Open Simulink, create new model","Add Transfer Function block for DC motor plant","Set motor parameters: J=0.01, b=0.1, K=0.01, R=1, L=0.5","Add Step input block (setpoint = 1 rad/s)","Add Feedback (Sum) block and Gain block","Add Scope block to visualize output","Run simulation, observe open-loop response","Add proportional controller (Kp=1), re-run","Document: rise time, settling time, steady-state error"]},
+  ],
+  labSpec:{
+    params:["DC Motor: J=0.01 kg·m², b=0.1 N·m·s, K=0.01 V·s/rad, R=1 Ω, L=0.5 H","Step input: magnitude=1, step time=0s","Simulation stop time: 5 seconds","Solver: ode45 (variable-step)"],
+    constraints:["Use only Transfer Function and basic math blocks (no PID block yet — that is Week 2)","Must use feedback loop — open-loop submission not accepted","Motor parameters must match those listed exactly for consistent grading"],
+    problems:["The uncontrolled motor has very large steady-state error. How much error exists at t=5s?","Increase proportional gain from 1 to 10 to 100. What happens to overshoot? Plot all three.","At what gain does the system become unstable or unacceptably oscillatory?"],
+    outputs:["Simulink .slx model file: motor_speed_control_W1.slx","Scope screenshot showing step response with proportional controller","Short report (1 page): state the gain you chose, and the resulting rise time, settling time, % overshoot, and steady-state error"],
+  }
+},
+{
+  id:2, title:"Tracking Control + PID",
+  desc:"Design and tune a PID controller for an industrial oven temperature system modeled with Simscape thermal components.",
+  deliverable:"Tuned PID controller + step response report",
+  overview:"PID (Proportional-Integral-Derivative) is the most widely deployed control algorithm in industry — over 95% of industrial controllers use it. This week you will move from pure transfer-function models to physics-based Simscape modeling, building a real thermal system with a heater actuator and temperature sensor. You will then tune a PID controller using MATLAB's built-in PID Tuner, learning how each gain affects the step response.",
+  concepts:[
+    {label:"Control Theory",title:"PID Control Law",body:"u(t) = Kp·e(t) + Ki·∫e(t)dt + Kd·de/dt. Proportional reacts to current error, Integral eliminates steady-state error, Derivative anticipates future error and reduces overshoot."},
+    {label:"Physical Modeling",title:"Simscape Thermal Domain",body:"Simscape uses energy/power ports instead of signal wires. Thermal Mass stores heat (like a capacitor), Thermal Conductance transfers heat. Temperature is the 'across' variable; heat flow is the 'through' variable."},
+    {label:"Control Theory",title:"PID Tuning Methods",body:"Manual tuning (Ziegler-Nichols), auto-tuning (MATLAB PID Tuner), and model-based tuning (root locus/Bode). PID Tuner linearizes your plant and gives you a response-time slider to trade off speed vs robustness."},
+    {label:"Tool",title:"MATLAB PID Tuner App",body:"Launch from the PID Controller block: double-click → Tune button. Drag the slider to adjust bandwidth. The app shows closed-loop step response live as you tune."},
+  ],
+  videos:[
+    {title:"PID Controller Design for a DC Motor (MathWorks Official)",url:"https://www.mathworks.com/videos/pid-controller-design-for-a-dc-motor-68881.html",src:"MathWorks",desc:"Shows the exact PID Tuner workflow — creates closed-loop system, uses the graphical tuner to hit spec, validates with simulation."},
+    {title:"Simscape Onramp (Free — MathWorks Official)",url:"https://matlabacademy.mathworks.com/details/simscape-onramp/simscape",src:"MathWorks Academy",desc:"Start this before lab. Covers physical network approach, connecting thermal/mechanical blocks, interfacing with Simulink."},
+    {title:"Simscape Thermal Physical Model Tutorial",url:"https://www.youtube.com/watch?v=mvB1eRWcjs0",src:"YouTube",desc:"Builds a thermal Simscape model step-by-step with English subtitles — directly relevant to oven model."},
+    {title:"Motor Speed: PID Controller Design (UMich CTMS)",url:"https://ctms.engin.umich.edu/CTMS/index.php?example=MotorSpeed&section=ControlPID",src:"UMich CTMS",desc:"Walks through P, PI, and PID progressively, showing how each term shapes the response. Apply same logic to your thermal plant."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Understand P, I, and D gains individually","Learn Ziegler-Nichols tuning rules (reference only)","Study MATLAB PID Tuner app workflow","Read Simscape thermal domain documentation"]},
+    {name:"Lab — Oven Temperature System",tasks:["Create new Simulink+Simscape model","Add Thermal Mass block (oven body, C=5000 J/K)","Add Thermal Conductance (insulation, G=0.5 W/K)","Add Controlled Heat Flow Source (heater actuator)","Add Temperature Sensor block","Add Ideal Temperature Source for ambient (T=20°C)","Connect Simscape network, add PS-Simulink Converter","Add PID Controller block (Simulink side)","Connect sensor output to PID input","Use PID Tuner: target settling time <60s, overshoot <5%","Run step response from 20°C → 200°C","Generate report"]},
+  ],
+  labSpec:{
+    params:["Thermal mass: C = 5000 J/K (steel oven body)","Thermal conductance: G = 0.5 W/K (insulation)","Heater max power: 2000 W (saturate input)","Ambient temp: 20°C. Setpoint: 200°C","Simulation time: 600 seconds"],
+    constraints:["Must use Simscape thermal blocks — not a transfer function approximation","Heater output must be limited to 0–2000 W (no negative heating)","PID gains must be tuned with MATLAB PID Tuner — document initial vs final gains"],
+    problems:["A proportional-only controller leaves a steady-state error. Measure it. Why does adding I gain fix this?","Increase Kd too high — what happens? What physical phenomenon does this model?","What happens to the response if thermal mass doubles (C=10000)? Re-tune and compare."],
+    outputs:["Simulink model: oven_pid_W2.slx","Step response plot (20°C → 200°C) with annotations for rise time, settling time, overshoot","PID gains table: Kp, Ki, Kd (before and after tuning)","1-page written analysis answering the three problem questions"],
+  }
+},
+{
+  id:3, title:"Digital Controllers",
+  desc:"Convert the continuous oven controller to a discrete-time digital controller. Analyze sampling effects and compare performance.",
+  deliverable:"Discrete controller with sample time analysis report",
+  overview:"All real microcontrollers and PLCs operate in discrete time — they sample sensors at a fixed rate and compute outputs at each sample step. This week you learn how continuous-time (analog) control theory translates to the digital domain. You will use zero-order hold (ZOH) discretization, Tustin (bilinear) transforms, and observe how sample rate affects stability and performance.",
+  concepts:[
+    {label:"Digital Control",title:"Sampling & the Nyquist Criterion",body:"To faithfully capture a signal, you must sample at least 2× its highest frequency (Nyquist rate). For control, sampling at 10–20× the closed-loop bandwidth is typical. Too slow → poor performance; too fast → numerical issues."},
+    {label:"Digital Control",title:"Zero-Order Hold (ZOH)",body:"A ZOH reconstructs a continuous signal from discrete samples by holding the last value until the next sample. The c2d() function in MATLAB applies ZOH discretization to convert a continuous plant to discrete."},
+    {label:"Digital Control",title:"Tustin (Bilinear) Transform",body:"Maps s-domain to z-domain via s ≈ (2/T)·(z-1)/(z+1). Preserves frequency response better than ZOH for controllers. Use c2d(sys,'tustin') in MATLAB."},
+    {label:"Math",title:"z-Domain Stability",body:"A discrete system is stable if all poles of the closed-loop transfer function lie inside the unit circle in the z-plane. Poles outside the unit circle → unstable. Use rlocus() and pzmap() to check."},
+  ],
+  videos:[
+    {title:"Digital Controller Design — Motor Speed (UMich CTMS)",url:"https://ctms.engin.umich.edu/CTMS/index.php?example=MotorSpeed&section=ControlDigital",src:"UMich CTMS",desc:"Converts a continuous motor speed controller to discrete, shows ZOH method, checks z-plane stability, and fixes instability. Directly applicable."},
+    {title:"Discrete-Time Control — MATLAB Tech Talk",url:"https://www.mathworks.com/videos/discrete-control-what-happens-when-you-go-digital-1578413095780.html",src:"MathWorks",desc:"Conceptual explainer on what happens when you digitize a controller — sampling, quantization, and ZOH effects explained visually."},
+    {title:"PI Control of DC Motor Speed (UMich CTMS)",url:"https://ctms.engin.umich.edu/CTMS/index.php?aux=Activities_DCmotorB",src:"UMich CTMS",desc:"Hands-on implementation of PI control with sample time effects — shows how to observe steady-state error elimination in discrete time."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study Nyquist sampling theorem and why it matters for control","Understand ZOH discretization method","Understand Tustin/bilinear transform","Study z-plane stability: unit circle criterion"]},
+    {name:"Lab — Discrete Oven Controller",tasks:["Open oven_pid_W2.slx from Week 2","Use c2d() to convert continuous controller to discrete (Ts=1s, ZOH method)","Rebuild in Simulink with discrete PID block (sample time = 1s)","Run simulation — compare output to continuous controller","Test Ts=0.5s, 2s, 5s — record settling time and overshoot for each","Find minimum sample rate that still meets spec","Add Zero-Order Hold block explicitly, observe stairstep response","Use pzmap() to verify z-plane pole locations","Document performance table"]},
+  ],
+  labSpec:{
+    params:["Continuous plant from Week 2 (oven thermal model)","Sample times to test: Ts = 0.1s, 0.5s, 1s, 2s, 5s, 10s","Discretization method: ZOH (primary), then Tustin (comparison)","Simulation time: 600 seconds"],
+    constraints:["PID gains from Week 2 must be used as starting point — only re-tune if needed to stabilize","Must test at least 5 different sample times","ZOH and Tustin results must both be plotted on same axes for comparison"],
+    problems:["At what sample rate does the discrete controller become unstable? Why?","Compare ZOH vs Tustin at Ts=2s — which is closer to the continuous response?","What is the practical minimum sample rate for this oven system? Justify with the Nyquist criterion."],
+    outputs:["Updated Simulink model: oven_discrete_W3.slx","Table: Ts vs settling time vs overshoot vs stability (5+ rows)","Overlay plot: continuous vs discrete (Ts=1s) step response","1-page written analysis of sampling effects and minimum sample rate justification"],
+  }
+},
+{
+  id:4, title:"State Diagrams — PLC Replacement Week",
+  desc:"PLC ladder logic → Stateflow. Model a conveyor sorting machine using finite state machines. This week replaces traditional PLC programming.",
+  deliverable:"Conveyor sorting state machine + simulation",
+  overview:"Traditional PLCs use ladder logic — a graphical language that mimics relay circuits. Stateflow replaces this with finite state machines (FSM), which are far more readable, testable, and scalable. This week you will learn Stateflow fundamentals: states, transitions, guards, and actions. You will build a complete conveyor sorting machine that detects bottles, moves conveyors, and routes to accept/reject based on sensor input.",
+  concepts:[
+    {label:"Stateflow",title:"Finite State Machines (FSM)",body:"An FSM has a finite set of states, transitions between them (triggered by events/conditions), and actions executed on entry/exit/during a state. Only one state is active at a time."},
+    {label:"Stateflow",title:"Stateflow Syntax",body:"entry: code runs when state is entered. during: code runs every time step the state is active. exit: code runs when leaving the state. Transitions use guards [condition] and actions {code}."},
+    {label:"PLC Equivalence",title:"Ladder Logic → Stateflow",body:"Rungs in ladder logic = transitions in Stateflow. Coils (outputs) = entry/during actions. Contacts (inputs) = transition guards. Sequential control = hierarchy of states."},
+    {label:"Tool",title:"Stateflow Onramp",body:"Free MathWorks course covering chart basics, states, transitions, hierarchy, and MATLAB functions inside charts. Complete before the lab."},
+  ],
+  videos:[
+    {title:"Stateflow Onramp (Free — MathWorks Official)",url:"https://matlabacademy.mathworks.com/details/stateflow-onramp/stateflow",src:"MathWorks Academy",desc:"Required before lab. Covers all Stateflow basics interactively — state creation, transitions, events, hierarchy."},
+    {title:"Getting Started with Stateflow (MathWorks Official)",url:"https://www.youtube.com/watch?v=cXnT5-zY3YI",src:"YouTube / MathWorks",desc:"Builds a building energy manager FSM from scratch — shows connecting Stateflow to Simulink, using input/output ports, and animating simulation."},
+    {title:"Create a Basic State Machine with Stateflow",url:"https://www.youtube.com/watch?v=RIpzPqAMu4s",src:"YouTube",desc:"Practical beginner tutorial — creates and runs a state machine, shows entry/during/exit actions with real output."},
+    {title:"Modeling State Machines with Stateflow (MathWorks Webinar)",url:"https://www.youtube.com/watch?v=rUeMUCrlxP0",src:"YouTube / MathWorks",desc:"Goes deeper into event-driven transitions, debugging animation, and connecting Stateflow to physical plants."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Complete Stateflow Onramp (required — ~2 hrs)","Understand FSM: states, transitions, guards, actions","Map ladder logic concepts to Stateflow equivalents","Study entry/during/exit action syntax"]},
+    {name:"Lab — Conveyor Sorting Machine",tasks:["Create new Simulink model with Stateflow Chart block","Define inputs: bottle_detected (bool), sensor_type (int: 1=accept, 2=reject)","Define outputs: conveyor_run (bool), sort_gate (int: 0=accept lane, 1=reject lane)","Build Idle state (conveyor_run=0)","Build Detect_Bottle state (transitions from Idle when bottle_detected=1)","Build Move_Conveyor state (conveyor_run=1)","Build Accept state (sort_gate=0, output signal)","Build Reject state (sort_gate=1, output signal)","Add transitions with guards and actions","Build Simulink test harness: step inputs for bottle_detected and sensor_type","Run simulation for 20 seconds with multiple detection events","Animate and verify correct state transitions"]},
+  ],
+  labSpec:{
+    params:["Inputs: bottle_detected (boolean), sensor_type (1=accept, 2=reject)","Outputs: conveyor_run (boolean), sort_gate (0=accept, 1=reject)","Test sequence: bottle at t=2s (accept), bottle at t=8s (reject), bottle at t=15s (accept)","Simulation time: 25 seconds"],
+    constraints:["All logic must be in Stateflow — no Simulink logic blocks","Must have exactly 5 states: Idle, Detect, Move, Accept, Reject","Transitions must include guard conditions (not unconditional)","Model must animate correctly during simulation"],
+    problems:["What happens if two bottles arrive simultaneously? How would you handle this? Describe a solution (no implementation required).","Add a 'Jam Detected' state that triggers if conveyor_run=1 for more than 5 seconds without a new bottle detected. Show the transition.","How does this FSM map to a ladder logic rung? Draw the equivalent ladder rung for the Idle→Detect transition."],
+    outputs:["Stateflow model: conveyor_sort_W4.slx","State diagram screenshot (clearly labeled)","Simulation output plot showing state transitions over time","1-page analysis: FSM diagram, state count, and answers to the problem questions"],
+  }
+},
+{
+  id:5, title:"Advanced Stateflow — Ladder Logic Equivalent",
+  desc:"Advanced Stateflow: temporal logic, events, truth tables. Build a full industrial tank filling sequence controller.",
+  deliverable:"Full industrial sequence controller (Fill/Hold/Drain/E-Stop)",
+  overview:"This week goes deeper into Stateflow's industrial control features. You will learn how to model time-based logic (temporal operators), event-driven transitions, and truth tables — the three tools that replace the most common PLC programming patterns. The lab builds a complete tank filling station controller with emergency stop logic, which will become part of your final project.",
+  concepts:[
+    {label:"Stateflow",title:"Temporal Logic Operators",body:"after(n, sec) — transition fires after n seconds in current state. before(n, sec) — fires before n seconds. at(n, sec) — fires exactly at n seconds. Use these to replace timer rungs in ladder logic."},
+    {label:"Stateflow",title:"Events and Broadcasting",body:"Events trigger transitions asynchronously. Define input events (from Simulink signals) and local events (broadcast within chart). Use send(event_name) and receive patterns for inter-state communication."},
+    {label:"Stateflow",title:"Truth Tables",body:"A truth table in Stateflow is a tabular way to specify combinational logic — rows are conditions, columns are decisions. Useful for replacing large if/else chains or complex interlocks."},
+    {label:"Safety",title:"Emergency Stop (E-Stop) Design",body:"E-Stop must override all other states immediately. In Stateflow, implement as an outer transition from any state to a Safe state, triggered by the E-Stop input — this is called an 'inner transition from default'."},
+  ],
+  videos:[
+    {title:"5 Beginner Tips for Stateflow State Machines",url:"https://www.youtube.com/watch?v=ArNtcqH3yro",src:"YouTube",desc:"Covers common patterns including temporal logic and event handling with practical examples."},
+    {title:"Stateflow Tutorial — Part 1 (Stateflow Onramp walkthrough)",url:"https://www.youtube.com/watch?v=JhskboB_Acw",src:"YouTube",desc:"Beginner-friendly walkthrough of running Stateflow charts, useful for reinforcing onramp learning."},
+    {title:"Modeling and Simulating State Machines with Stateflow (MathWorks Webinar)",url:"https://www.mathworks.com/videos/modeling-and-simulating-state-machines-with-stateflow-1761227223579.html",src:"MathWorks",desc:"Deep dive into temporal logic, debugging state machines, and industrial control patterns."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study temporal operators: after(), before(), at()","Understand event definition and broadcasting","Study truth tables in Stateflow","Learn E-Stop design patterns for safety-critical systems"]},
+    {name:"Lab — Tank Filling Controller",tasks:["Create Stateflow chart with 5 states: Idle, Fill, Hold, Drain, Emergency","Define inputs: start_cmd, estop, level_sensor (0-100%)","Define outputs: inlet_valve (bool), outlet_valve (bool), alarm (bool)","Implement Fill state: inlet_valve=1, transition to Hold when level>=90%","Implement Hold state: both valves closed, hold for 30 seconds using after(30,sec)","Implement Drain state: outlet_valve=1, transition to Idle when level<=5%","Add E-Stop transition from any state: [estop==1] → Emergency state","Emergency state: both valves closed, alarm=1","Build test harness with signal builder for start_cmd and estop","Simulate complete fill/hold/drain cycle","Test E-Stop mid-fill and mid-drain"]},
+  ],
+  labSpec:{
+    params:["Tank capacity: 100% (normalized). Fill rate: 10%/sec. Drain rate: 8%/sec","Hold time: 30 seconds (use after(30,sec))","Fill setpoint: 90%. Drain setpoint: 5%","E-Stop input: active high (1=emergency)"],
+    constraints:["E-Stop must override from ANY state — use outer (default) transition pattern","Valve outputs must be mutually safe: inlet and outlet cannot both be fully open simultaneously","Must use temporal logic (after/before) — no discrete timer blocks in Simulink side","Level sensor must be simulated as a feedback signal calculated from valve states"],
+    problems:["What happens if E-Stop fires exactly when the Hold timer expires? Does order of evaluation matter?","Add a 'Fault' state that detects if the tank hasn't reached 90% within 30 seconds of starting Fill. How do you implement this timeout?","If the E-Stop is released, should the system auto-restart or require a manual reset command? Justify your answer for a real industrial application."],
+    outputs:["Stateflow model: tank_controller_W5.slx","State diagram with all transitions labeled","Simulation plot: level_sensor, inlet_valve, outlet_valve, alarm over one full cycle","E-Stop test scenario plot: E-Stop fired at t=15s mid-fill","1-page safety analysis answering the three problem questions"],
+  }
+},
+{
+  id:6, title:"Controller Implementation — Bottle Filling Station",
+  desc:"Merge Simscape physics + Stateflow logic into a complete Bottle Filling Station. This becomes Part 1 of your final project.",
+  deliverable:"Integrated Bottle Filling Station model (Simscape + Stateflow)",
+  overview:"This is the most important week so far — you will merge everything you have built. The Simscape side models real tank physics (fluid pressure, valve dynamics, level sensor). The Stateflow side runs the control sequence. Connecting them requires understanding the Simscape/Simulink interface: PS-Simulink converters, physical signal buses, and how to feed sensor data back into a Stateflow chart.",
+  concepts:[
+    {label:"Integration",title:"Simscape ↔ Simulink Interface",body:"Simscape physical networks use Physical Signal (PS) ports, not regular Simulink signals. Use PS-Simulink Converter to read sensor data into Simulink (and Stateflow). Use Simulink-PS Converter to send control commands to actuators."},
+    {label:"Simscape",title:"Hydraulic/Fluid Modeling",body:"Simscape Fluids models tanks, pipes, valves, and pumps using mass/pressure conservation. Key blocks: Tank (Controlled), Variable Area Orifice (valve), Ideal Flow Rate Sensor, Absolute Pressure Sensor."},
+    {label:"Architecture",title:"Model Architecture Pattern",body:"Best practice: separate subsystems for Plant (Simscape), Controller (Stateflow/Simulink), and Sensors/Actuators. Use bus objects to organize signals. This mirrors real hardware architecture."},
+    {label:"Tool",title:"Simulink Data Inspector",body:"After simulation, use the Data Inspector (Simulation → Data Inspector) to overlay signals, zoom in, and export to MATLAB workspace for analysis. Essential for debugging this integration."},
+  ],
+  videos:[
+    {title:"Simscape Onramp (Free — MathWorks Official)",url:"https://matlabacademy.mathworks.com/details/simscape-onramp/simscape",src:"MathWorks Academy",desc:"If not completed in Week 2, complete now. Covers the physical network approach essential for this lab."},
+    {title:"Getting Started with Stateflow",url:"https://www.youtube.com/watch?v=cXnT5-zY3YI",src:"YouTube / MathWorks",desc:"Re-watch the integration portion — how Stateflow connects to Simulink signals (inputs/outputs on chart block)."},
+    {title:"Motor Cooling System — Simscape Essentials (MathWorks)",url:"https://www.mathworks.com/videos/motor-cooling-system-simscape-essentials-for-automotive-student-teams-1709620173871.html",src:"MathWorks",desc:"Shows the full workflow: sketch the physical system, replicate in Simscape, connect to controller — apply this exact process to your tank."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study PS-Simulink / Simulink-PS Converter usage","Understand Simscape fluid domain: tanks, valves, orifices","Review model architecture best practices (Plant/Controller/Sensors separation)","Learn Simulink Data Inspector for post-sim analysis"]},
+    {name:"Lab — Bottle Filling Station",tasks:["Create Plant subsystem: Tank (Simscape Fluids), inlet valve (Variable Orifice), outlet valve","Add Ideal Liquid Level Sensor connected to tank","Add PS-Simulink Converter to read level signal","Bring in Stateflow controller from Week 5 (tank_controller_W5.slx)","Connect level sensor output → Stateflow level_sensor input","Connect Stateflow valve outputs → Simulink-PS Converters → Simscape valve actuators","Set tank parameters: area=0.5m², initial level=0m, max level=1m","Run full fill/hold/drain cycle, verify physics match Stateflow logic","Use Data Inspector to overlay level, flow rate, and valve states","Save as project_bottling_station.slx (final project seed)"]},
+  ],
+  labSpec:{
+    params:["Tank: cross-sectional area=0.5 m², max height=1m, initial level=0m","Inlet orifice: max area=0.01 m², Cd=0.6","Outlet orifice: max area=0.008 m² (slightly smaller than inlet)","Fluid: water, density=1000 kg/m³","Gravity: 9.81 m/s²"],
+    constraints:["Must use Simscape Fluids blocks — not a simplified transfer function","Physical units must be consistent throughout (use unit annotations)","Level sensor output must come from the Simscape model (not a separate signal generator)","Stateflow controller from Week 5 must be reused with minimal modification"],
+    problems:["Why is the physical fill time different from the Week 5 model (which used a simplified rate)? Calculate the expected fill time from orifice area and head pressure.","What happens if the fluid density is changed to vegetable oil (900 kg/m³)? Re-run and compare fill time.","The outlet is slightly smaller than the inlet. Can the tank ever be 'draining' while inlet is open? Show numerically."],
+    outputs:["Integrated model: project_bottling_station.slx (keep this file — it is your final project base)","Simulation plot: physical tank level (meters) + inlet/outlet flow rate + valve states over full cycle","Comparison table: Week 5 simplified timing vs Week 6 physical timing","1-page integration report answering the three problem questions"],
+  }
+},
+{
+  id:7, title:"Multi-Conveyor Bottling Line",
+  desc:"Add a multi-conveyor line to the bottling station: bottle detection, spacing control, and jam detection logic.",
+  deliverable:"Mini production line with spacing and jam detection",
+  overview:"A single filling station is only one node in a production line. This week you add upstream and downstream conveyors, implement bottle spacing logic (so bottles don't bunch up), and add a jam detection subsystem. These are real challenges in bottling plant automation and form the mechanical/logical backbone of your final project.",
+  concepts:[
+    {label:"Automation",title:"Bottle Spacing Control",body:"On a conveyor, bottles must maintain a minimum gap to prevent collisions and ensure each fills completely. Spacing control uses photoelectric sensors upstream, conveyor speed modulation, and hold/release logic."},
+    {label:"Stateflow",title:"Parallel State Machines",body:"Stateflow supports parallel (AND) decomposition — multiple state machines running simultaneously inside one chart. Use this to run conveyor logic, fill logic, and jam detection in parallel."},
+    {label:"Automation",title:"Jam Detection Patterns",body:"A jam is detected when a bottle sensor shows occupancy for longer than the expected transit time. Implement as a timer in Stateflow: if bottle_detected remains 1 for > Tjam seconds, enter Jam state."},
+    {label:"Systems",title:"Production Line Architecture",body:"Multi-station lines use buffering (accumulation conveyor) between stations to decouple them. This prevents one slow station from starving the next. Model buffers as queues with capacity limits."},
+  ],
+  videos:[
+    {title:"Modeling State Machines with Stateflow (Webinar)",url:"https://www.youtube.com/watch?v=rUeMUCrlxP0",src:"YouTube / MathWorks",desc:"Covers parallel states — essential for running conveyor + fill + jam logic simultaneously."},
+    {title:"Stateflow Tutorial Series (Playlist)",url:"https://www.youtube.com/playlist?list=PLUJLsDLKTIje_n3RZPGEAs982lYpDWfwm",src:"YouTube",desc:"Full Stateflow tutorial playlist — use episodes on hierarchy and parallel decomposition for this week's multi-state architecture."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study parallel (AND) state decomposition in Stateflow","Understand conveyor spacing control strategies","Learn jam detection timer patterns"]},
+    {name:"Lab — Multi-Conveyor Line",tasks:["Add Infeed Conveyor state machine: idle/running/paused","Add Outfeed Conveyor state machine","Implement spacing logic: pause infeed if bottle in fill station","Add bottle counter (count input using en: entry action)","Implement Jam Detection: if sensor active > 8 seconds → JamAlarm state","Add line-reset command to clear jam and restart sequence","Connect to project_bottling_station.slx from Week 6","Simulate 5 consecutive bottles through full line","Intentionally trigger jam (hold sensor input), verify alarm","Document throughput (bottles/minute) at different conveyor speeds"]},
+  ],
+  labSpec:{
+    params:["Conveyor speed: 0.3 m/s (default), variable 0.1–0.5 m/s","Bottle diameter: 0.08 m. Minimum gap: 0.15 m","Jam timeout: 8 seconds at any position sensor","Simulation: 5 bottles, 10-second spacing between arrivals"],
+    constraints:["Conveyor and jam logic must be parallel states (AND decomposition) — not separate Stateflow charts","Jam detection must use after(8, sec) temporal operator — no external timer block","Infeed must auto-pause if fill station is occupied"],
+    problems:["At 0.3 m/s and 0.15 m minimum gap, what is the maximum theoretical throughput (bottles/min)? Compare to your simulation result.","If you speed up the infeed to 0.5 m/s without changing the fill time, what breaks first?","Design a simple buffer accumulator between infeed and fill station. What Stateflow state would it need?"],
+    outputs:["Updated model: project_bottling_line_W7.slx","Simulation plot: all conveyor states + bottle positions + jam alarm over 5 bottle cycles","Throughput analysis table: conveyor speed vs bottles/minute","Jam test scenario: trigger at bottle 3, show alarm and reset"],
+  }
+},
+{
+  id:8, title:"Types of Production Systems",
+  desc:"Introduce SimEvents. Model batch, mass production, and continuous production modes and compare throughput.",
+  deliverable:"Three production mode simulations with throughput comparison",
+  overview:"SimEvents adds discrete-event simulation to Simulink — entities (bottles, jobs, parts) flow through queues, servers, and routing logic. This is how manufacturing engineers model entire factories before building them. This week you build the same bottling line in three production configurations and measure key performance indicators: throughput, cycle time, and utilization.",
+  concepts:[
+    {label:"SimEvents",title:"Entities, Queues, Servers",body:"In SimEvents: Entities are discrete items (bottles). Entity Generator creates them at a defined rate. Queue holds them in order. Entity Server processes them (with a service time). Entity Terminator destroys them at the end."},
+    {label:"Manufacturing",title:"Batch vs Mass vs Continuous",body:"Batch: process a fixed quantity, then reset (e.g., pharmaceutical). Mass: continuous flow optimized for identical products (e.g., bottling). Continuous: uninterrupted process with no discrete units (e.g., oil refining). Each has different throughput, flexibility, and WIP tradeoffs."},
+    {label:"SimEvents",title:"Statistics and Visualization",body:"SimEvents provides built-in statistics: throughput, queue length, server utilization, waiting time. Use the Statistics Dashboard block and the Data Inspector to visualize. Key metric: Little's Law: L = λ·W."},
+    {label:"KPIs",title:"Key Performance Indicators",body:"Throughput: units/hour output. Utilization: fraction of time server is busy. Queue length: average number waiting. Cycle time: average time from arrival to departure. These are the core metrics of production engineering."},
+  ],
+  videos:[
+    {title:"Discrete Event Simulation with SimEvents (MathWorks Official)",url:"https://www.mathworks.com/videos/discrete-event-simulation-with-simevents-68923.html",src:"MathWorks",desc:"Official intro to SimEvents — covers entities, queues, servers, and statistics blocks. Watch before lab."},
+    {title:"Model a Discrete Event System — Overview (MathWorks)",url:"https://www.mathworks.com/videos/model-a-discrete-event-system-overview-1-of-7-81124.html",src:"MathWorks",desc:"7-part series — Part 1 gives the architecture. Builds a complete SimEvents model from scratch."},
+    {title:"What is Discrete-Event Simulation? (MATLAB Tech Talk)",url:"https://www.mathworks.com/help/simevents/getting-started-with-simevents.html",src:"MathWorks",desc:"Tech talk covering the conceptual foundations — when to use DES vs time-based simulation."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study SimEvents block library: Generator, Queue, Server, Terminator","Understand batch vs mass vs continuous production differences","Learn Little's Law and how to calculate throughput","Study SimEvents Statistics Dashboard"]},
+    {name:"Lab — Production Mode Comparison",tasks:["Model 1 (Batch): Entity Generator with batch size=10, inter-batch pause=60s, server time=5s/unit","Model 2 (Mass Production): Continuous entity flow, intergeneration time=6s, server time=5s","Model 3 (Continuous): Entity Generator rate=∞ (as fast as served), server time=5s, queue capacity=50","Run all three for 3600 seconds (1 simulated hour)","Record: throughput, average queue length, server utilization for each","Build comparison table","Use Statistics Dashboard to visualize queue buildup","Note: SimEvents uses events not time-steps — solver must be set to discrete"]},
+  ],
+  labSpec:{
+    params:["Batch: 10 units/batch, 60s pause between batches, service time 5s/unit","Mass Production: intergeneration time 6s, service time 5s","Continuous: arrive as fast as served (M/D/1 queue), service time 5s","Simulation time: 3600 seconds for all three"],
+    constraints:["Must use SimEvents blocks — not a custom script","All three models must use identical service time (5s) for fair comparison","Statistics must be read from SimEvents statistics ports — not manually calculated","Solver must be set to discrete event (not fixed-step)"],
+    problems:["Mass production arrival rate = 1/6 units/sec, service rate = 1/5 units/sec. According to queuing theory, what is server utilization (ρ = λ/μ)? Does your simulation match?","In batch mode, why is average throughput lower than mass production even when batch rate could theoretically match it?","What is the maximum server utilization before queue length grows unboundedly (Little's Law)?"],
+    outputs:["Three SimEvents models: production_batch_W8.slx, production_mass_W8.slx, production_continuous_W8.slx","Statistics Dashboard screenshots for each model","Comparison table: throughput, utilization, avg queue length, cycle time for all three modes","1-page analysis answering the three problem questions"],
+  }
+},
+{
+  id:9, title:"Flow Line Analysis",
+  desc:"Build a 5-station bottling line in SimEvents. Measure throughput, identify bottlenecks, and quantify queue sizes.",
+  deliverable:"Throughput report + bottleneck analysis",
+  overview:"A flow line is a series of sequential workstations where each unit must pass through all stations in order. In real manufacturing engineering, flow line analysis is used to set production targets, justify capital equipment, and identify where to invest in automation. This week you build a realistic 5-station bottling line and perform a formal bottleneck analysis — finding which station limits your overall throughput.",
+  concepts:[
+    {label:"Manufacturing",title:"Bottleneck Analysis",body:"The bottleneck is the station with the highest utilization (closest to 100%). Throughput of the entire line = throughput of the bottleneck. To increase line output, you must improve the bottleneck — improving any other station has no effect on overall throughput."},
+    {label:"Manufacturing",title:"Station Utilization",body:"Utilization ρ = λ/μ. If ρ > 1, the queue grows infinitely. If ρ < 1, the station has idle time. The goal is balanced utilization across all stations — called line balancing (Week 10)."},
+    {label:"SimEvents",title:"Multi-Server Models",body:"SimEvents Entity Server block supports N servers (parallel identical machines). Set Number of servers to model parallel workstations, which reduces effective service time by 1/N."},
+    {label:"Analysis",title:"OEE — Overall Equipment Effectiveness",body:"OEE = Availability × Performance × Quality. In SimEvents: Availability = fraction of time server is not down, Performance = actual throughput / max throughput, Quality = good units / total units. Target: world-class OEE > 85%."},
+  ],
+  videos:[
+    {title:"Production Simulation Software for Manufacturing (MathWorks)",url:"https://www.mathworks.com/videos/production-simulation-software-for-manufacturing-68930.html",src:"MathWorks",desc:"Shows SimEvents used for real manufacturing line analysis — bottleneck identification and throughput optimization."},
+    {title:"Optimizing Automotive Manufacturing with SimEvents (MathWorks)",url:"https://www.mathworks.com/company/technical-articles/optimizing-automotive-manufacturing-processes-with-discrete-event-simulation.html",src:"MathWorks Article",desc:"Daimler case study showing exactly how SimEvents is used for real flow line bottleneck analysis in industrial manufacturing."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study bottleneck identification: utilization-based method","Understand OEE calculation and targets","Learn how to read SimEvents utilization statistics","Study queuing theory: M/M/1 vs M/D/1 models"]},
+    {name:"Lab — 5-Station Bottling Line",tasks:["Build 5-station line: Rinse→Fill→Cap→Label→Inspect","Station service times: Rinse=3s, Fill=6s, Cap=4s, Label=5s, Inspect=7s","Entity Generator: intergeneration time=3s (arrivals every 3s)","Add FIFO Queue between each station (capacity=20)","Add Statistics blocks on each server (utilization) and each queue (length)","Run for 3600 seconds","Plot utilization bar chart for all 5 stations","Identify bottleneck station","Calculate expected throughput: Throughput = 1 / max(service_time)","Compare theoretical vs simulated throughput"]},
+  ],
+  labSpec:{
+    params:["Station service times (seconds): Rinse=3, Fill=6, Cap=4, Label=5, Inspect=7","Intergeneration time: 3 seconds (Poisson arrivals)","Queue capacity: 20 per queue, FIFO discipline","Simulation time: 7200 seconds (2 simulated hours for steady state)"],
+    constraints:["Must have exactly 5 stations in series with queues between each","Entity arrival rate must exceed the bottleneck rate to observe queue buildup","All service times must be deterministic for Week 9 (stochastic added in Week 10)","Utilization must be read from SimEvents statistics — not estimated"],
+    problems:["Which station is the bottleneck? What is its utilization? Does your simulation confirm the theory?","The total cycle time through the empty line = 3+6+4+5+7 = 25s. What is the actual average cycle time per bottle under load? Why is it longer?","If you add a second parallel Inspect station (reducing effective time to 3.5s), does the bottleneck shift? To where?"],
+    outputs:["SimEvents model: flow_line_W9.slx","Utilization bar chart (all 5 stations)","Queue length time series for all 5 queues","Throughput report: theoretical max, simulated throughput, efficiency ratio","Bottleneck identification writeup with justification"],
+  }
+},
+{
+  id:10, title:"Line Balancing",
+  desc:"Optimize the 5-station production line by adjusting service times, adding stations, and maximizing efficiency.",
+  deliverable:"Optimized line configuration report with before/after comparison",
+  overview:"Line balancing is the process of redistributing work content across stations so all have approximately equal service times — minimizing idle time and maximizing throughput. This is a core skill in industrial engineering. You will systematically improve your Week 9 line using simulation-driven optimization, learning that improvement at the bottleneck is the only way to increase overall output.",
+  concepts:[
+    {label:"Industrial Engineering",title:"The Theory of Constraints (ToC)",body:"Dr. Eliyahu Goldratt's ToC states: every system has one constraint (bottleneck). To improve the system: identify the constraint, exploit it (maximize its output), subordinate all other stations to it, then elevate it if needed."},
+    {label:"Industrial Engineering",title:"Line Balancing Techniques",body:"(1) Increase bottleneck capacity: add parallel machine, reduce service time. (2) Off-load work: move tasks from bottleneck to lighter stations. (3) Split operations: break bottleneck task into two smaller tasks at separate stations."},
+    {label:"SimEvents",title:"Sensitivity Analysis",body:"Run multiple simulations with one parameter changed at a time and record throughput. Plot throughput vs parameter value. This is a sensitivity study — it shows which parameters have the most leverage."},
+    {label:"KPIs",title:"Line Efficiency",body:"Line Efficiency = (Sum of all service times) / (Number of stations × Cycle time). A perfectly balanced line = 100% efficiency. Real-world target: 80–90%."},
+  ],
+  videos:[
+    {title:"SimEvents for Operations Research (MathWorks)",url:"https://www.mathworks.com/solutions/discrete-event-simulation.html",src:"MathWorks",desc:"Shows how SimEvents is used for capacity planning and bottleneck optimization in manufacturing — directly applicable to line balancing."},
+    {title:"Discrete Event Simulation with SimEvents (MathWorks)",url:"https://www.mathworks.com/videos/discrete-event-simulation-with-simevents-68923.html",src:"MathWorks",desc:"Re-watch: focus on the optimization examples and what-if scenario analysis methodology."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study Theory of Constraints (ToC)","Understand line efficiency calculation","Learn sensitivity analysis methodology","Study parallel machine equivalence: 2 machines × T = 1 machine × T/2"]},
+    {name:"Lab — Line Optimization",tasks:["Start from flow_line_W9.slx","Scenario A: Add second Inspect machine (parallel server, same service time)","Scenario B: Reduce Fill time from 6s to 4s (faster fill technology)","Scenario C: Split Inspect into Inspect1 (3.5s) + Inspect2 (3.5s) in series","Scenario D: Rebalance all stations: target each within 5% of 5s","Run each scenario for 7200s","Record throughput, utilization, line efficiency for each","Build comparison table: before vs after for all metrics","Identify which scenario gives best ROI (best throughput gain per station added)"]},
+  ],
+  labSpec:{
+    params:["Base case: Week 9 flow line (use as control)","Scenario A: 2 parallel Inspect servers (7s each)","Scenario B: Fill service time reduced to 4s","Scenario C: Inspect split into two 3.5s stations in series","Scenario D: All stations within ±0.5s of 5s target","Simulation time: 7200 seconds per scenario"],
+    constraints:["Scenarios A and C increase station count — must re-measure line efficiency (denominator changes)","Cannot change inter-arrival rate (demand is fixed at 1 bottle/3s)","All scenarios must be saved as separate .slx files for comparison","Throughput must be measured in steady state (skip first 600s of transient)"],
+    problems:["After Scenario A (double Inspect), what is the new bottleneck? Is overall throughput actually limited by the new bottleneck?","Compare Scenarios A and C — both 'fix' the Inspect station, but with different architectures. Which performs better? Why?","What is the theoretical maximum throughput of Scenario D if all stations are exactly balanced at 5s?"],
+    outputs:["Four optimized SimEvents models: line_scenarioA_W10.slx through line_scenarioD_W10.slx","Comparison table: all scenarios vs base case (throughput, efficiency, queue lengths)","Bottleneck shift diagram: which station is the bottleneck in each scenario","Recommendation memo: which scenario to implement and why (1 paragraph)"],
+  }
+},
+{
+  id:11, title:"Hierarchical Control — Industry 4.0",
+  desc:"Study the ISA-95 automation pyramid, explore ThingWorx conceptually, and build a factory supervisory controller.",
+  deliverable:"Factory supervisory controller monitoring production rate, tank levels, and machine states",
+  overview:"Industry 4.0 adds a digital intelligence layer above traditional automation. The ISA-95 standard defines 5 levels: Field (L0) → Control (L1) → SCADA (L2) → MES (L3) → ERP (L4). This week you study this architecture, learn how ThingWorx and similar IIoT platforms sit at L3/L4, and build a Simulink supervisory controller that aggregates data from all your subsystems and makes high-level decisions.",
+  concepts:[
+    {label:"Industry 4.0",title:"ISA-95 Automation Pyramid",body:"L0: Physical sensors/actuators. L1: PLC/controller (your Stateflow). L2: SCADA/HMI (your Simulink scopes). L3: MES — production scheduling, OEE tracking (your SimEvents). L4: ERP — business planning. You are building all 5 levels."},
+    {label:"Industry 4.0",title:"PTC ThingWorx (Conceptual)",body:"ThingWorx is an IIoT platform at L3/L4. It ingests sensor data from edge devices via MQTT/OPC-UA, stores it in a time-series database, and provides dashboards + alerts. Think of it as the 'web server' for your factory data."},
+    {label:"Control",title:"Supervisory Control Architecture",body:"A supervisory controller sits above local loop controllers. It monitors multiple subsystems, detects cross-system faults, adjusts setpoints based on production targets, and escalates alarms. It does not replace local control — it orchestrates it."},
+    {label:"IIoT",title:"OPC-UA and MQTT (Intro)",body:"OPC-UA: the standard protocol for industrial device communication — typed, structured, secure. MQTT: lightweight pub/sub protocol for IoT sensors — small messages, low bandwidth. Both connect field devices to cloud platforms like ThingWorx."},
+  ],
+  videos:[
+    {title:"Industrial Automation Pyramid Explained — ISA-95 Complete Guide",url:"https://www.youtube.com/watch?v=EPkC6UwjvqE",src:"YouTube",desc:"Step-by-step visual walkthrough of all 5 ISA-95 levels with real industrial examples. Watch first for context."},
+    {title:"Introduction to IT/OT: Automation Pyramid (Siemens)",url:"https://www.youtube.com/watch?v=XxKAhzSLOxk",src:"YouTube",desc:"Excellent conceptual video on the automation pyramid, OPC-UA role, and Industry 4.0 convergence from Siemens engineers."},
+    {title:"Automation Pyramid ANSI/ISA-95 Architecture (Short)",url:"https://www.youtube.com/watch?v=3bwAZPTBPgs",src:"YouTube",desc:"Quick 5-minute visual explainer on the pyramid levels — good reference to watch after the longer video above."},
+    {title:"Beyond the Pyramid: ISA-95 for Industry 4.0 (ISA Article)",url:"https://www.isa.org/intech-home/2021/october-2021/features/beyond-the-pyramid-using-isa95-for-industry-4-0-an",src:"ISA / InTech Magazine",desc:"Technical article explaining how ISA-95 evolves for modern Industry 4.0 architectures — important reading for your career."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study ISA-95 pyramid — all 5 levels and their responsibilities","Understand ThingWorx architecture: edge → cloud → dashboard","Study OPC-UA vs MQTT: when to use each","Map your course project to ISA-95 levels"]},
+    {name:"Lab — Supervisory Controller",tasks:["Create a top-level Simulink model: factory_supervisor_W11.slx","Import signals from project_bottling_station.slx (level, flow, valve states)","Import signals from flow_line_W9.slx (throughput, utilization, queue lengths)","Build Supervisory Stateflow chart with states: Normal, LowProduction, Maintenance, Shutdown","Normal state: production rate > target","LowProduction state: throughput < 80% of target for > 30s — generate alert signal","Maintenance state: any station utilization > 95% for > 60s","Shutdown state: E-Stop from any subsystem","Add Dashboard subsystem: display production rate (units/hr), tank level %, line utilization %","Annotate each ISA-95 level in your model diagram"]},
+  ],
+  labSpec:{
+    params:["Production target: 600 bottles/hour (10/min, 1 every 6s)","Low production threshold: <80% of target for 30 consecutive seconds","Maintenance trigger: station utilization >95% for 60s","E-Stop: immediate shutdown from any subsystem","Dashboard update rate: 1 second"],
+    constraints:["Supervisory controller must read from existing subsystem models — not duplicate their logic","ISA-95 level annotations must appear in model as text labels","All supervisor state transitions must be logged (use Simulink To Workspace block)","Dashboard must show at least 3 KPIs (production rate, tank level, line utilization)"],
+    problems:["If the Fill station goes to 98% utilization, the supervisor triggers Maintenance. But local PID still runs. Describe the interface: how does supervisor signal Fill station to reduce setpoint without interfering with local control?","Design a simple production scheduling rule: if it is 'night shift' (simulated by a time-of-day input), reduce target rate to 70%. How does the supervisory state machine handle this?","Map your complete model to the ISA-95 pyramid. Which Simulink blocks/subsystems live at each level?"],
+    outputs:["factory_supervisor_W11.slx with ISA-95 level annotations","Supervisory state machine diagram (all states, transitions, guards)","Dashboard screenshot showing 3+ KPIs","ISA-95 mapping table: each subsystem mapped to a pyramid level","1-page analysis answering the three problem questions"],
+  }
+},
+{
+  id:12, title:"Industrial Networking",
+  desc:"Study OPC-UA, MQTT, and Modbus protocols. Simulate IoT sensor data streaming to ThingSpeak.",
+  deliverable:"IoT data streaming simulation with live dashboard",
+  overview:"Industrial networks are the nervous system of a digital factory. This week you study the three protocols you will encounter most in industry: Modbus (legacy field devices), OPC-UA (modern factory devices), and MQTT (IoT/cloud). In the lab you will stream simulated sensor data from MATLAB to ThingSpeak — a free IoT cloud platform — creating a real online dashboard visible from any device.",
+  concepts:[
+    {label:"Protocols",title:"Modbus",body:"Oldest industrial protocol (1979). Master-slave. Reads/writes registers (16-bit integers). Runs over RS-485 serial or TCP/IP (Modbus TCP). Still used in ~70% of installed field devices. Simple but no security, no data typing."},
+    {label:"Protocols",title:"OPC-UA",body:"Modern standard (2008). Client-server + pub/sub. Strongly typed data (not just integers — structures, arrays). Built-in security (certificates, encryption). Machine-readable information model (your device self-describes). The preferred protocol for new industrial installations."},
+    {label:"Protocols",title:"MQTT",body:"Lightweight pub/sub (2000s). Broker-based: devices publish topics (e.g., tank/level), subscribers receive them. Perfect for IoT sensors with limited bandwidth. Used by ThingSpeak, AWS IoT, and most cloud IIoT platforms."},
+    {label:"IIoT",title:"ThingSpeak (Free MathWorks IoT Platform)",body:"ThingSpeak is a free cloud platform owned by MathWorks. It accepts HTTP/MQTT data pushes, stores time-series, and provides live charts. Perfect for this course — directly integrated with MATLAB using thingSpeakWrite()."},
+  ],
+  videos:[
+    {title:"Introduction to IT/OT: Automation Pyramid",url:"https://www.youtube.com/watch?v=XxKAhzSLOxk",src:"YouTube",desc:"Re-watch the protocol section — covers OPC-UA, MQTT, and Modbus in the context of the pyramid levels."},
+    {title:"ThingSpeak for IoT Data — MathWorks Documentation",url:"https://www.mathworks.com/help/thingspeak/",src:"MathWorks Docs",desc:"Official ThingSpeak documentation — covers account setup, writing data from MATLAB, reading data, and creating dashboards."},
+    {title:"ISA-95 and Industrial Networking (ISA Article)",url:"https://www.isa.org/intech-home/2021/october-2021/features/beyond-the-pyramid-using-isa95-for-industry-4-0-an",src:"ISA",desc:"Context article for understanding where each protocol fits in the factory hierarchy."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study Modbus: registers, coils, function codes 01/03/06","Study OPC-UA: nodes, address space, security model","Study MQTT: broker, topics, QoS levels 0/1/2","Understand ThingSpeak architecture: channels, fields, API key"]},
+    {name:"Lab — IoT Data Streaming",tasks:["Create free ThingSpeak account (thingspeak.com)","Create channel with fields: Tank_Level, Fill_Rate, Valve_State, Throughput","In MATLAB: simulate sensor data using your bottling station model (or simplified signals)","Write MATLAB script to call thingSpeakWrite() every 15 seconds","Add noise to simulated signals (randn) to represent real sensor noise","Run for 10 minutes — view live dashboard on ThingSpeak","Build a ThingSpeak React (visualization) for tank level gauge","Export channel data as CSV","Optionally: connect a Simulink model to stream live via MATLAB Function block"]},
+  ],
+  labSpec:{
+    params:["ThingSpeak channel: 4 fields — Tank_Level (%), Fill_Rate (L/s), Valve_State (0/1), Throughput (units/hr)","Update rate: 15 seconds minimum (ThingSpeak free tier limit)","Simulation: 10 minutes of data streaming","Noise model: Gaussian with σ=2% for level, σ=0.1 for flow rate"],
+    constraints:["Must use a real ThingSpeak channel — not a local mock","thingSpeakWrite() must be called from a MATLAB script (not hardcoded values)","Sensor noise must be added (real sensors are never perfect)","Export: channel data must be downloadable as CSV for verification"],
+    problems:["ThingSpeak free tier limits to 1 update per 15 seconds. In a real plant with 500 sensors, how would you handle this? What architecture change is needed (hint: aggregation vs raw streaming)?","Your tank level sensor drifts +0.5% per hour (common in real sensors). How would you detect and compensate for this drift in MATLAB?","Design a simple threshold alert on ThingSpeak: send an email when tank level < 10%. Document how you would implement this using ThingSpeak React."],
+    outputs:["MATLAB script: iot_streaming_W12.m","ThingSpeak channel URL (public or shared link)","Screenshot of live ThingSpeak dashboard showing all 4 fields","Exported CSV file from ThingSpeak (10 minutes of data)","1-page reflection: protocol choice analysis — for this bottling plant, why would you use MQTT vs OPC-UA for field sensor connection?"],
+  }
+},
+{
+  id:13, title:"Production Control & Scheduling",
+  desc:"Add high-level production scheduling: production orders, shift simulation, and downtime events to create a factory operations simulator.",
+  deliverable:"Factory operations simulator with scheduling and downtime",
+  overview:"A factory does not run at steady state — it responds to orders, shift changes, planned maintenance, and unplanned breakdowns. This week you add a production scheduling layer on top of your SimEvents line. You will implement order-driven production (run until N units complete), shift-based rate changes, and random downtime events with repair time. This makes your model behave like a real factory.",
+  concepts:[
+    {label:"Operations",title:"Production Orders (Work Orders)",body:"A production order specifies: quantity, due date, product type, and routing. In simulation, you inject a finite number of entities (representing order quantity) and measure completion time vs due date — calculating schedule adherence."},
+    {label:"Operations",title:"Shift Simulation",body:"Most plants run 2 or 3 shifts with different staffing and targets. Model shifts as a piecewise time-varying input: Shift1 (0-8h): 100% capacity. Shift2 (8-16h): 80% capacity (fewer workers). Shift3 (16-24h): 60%."},
+    {label:"Reliability",title:"Downtime and MTBF/MTTR",body:"MTBF (Mean Time Between Failures): average operating time between breakdowns. MTTR (Mean Time To Repair): average repair time. Availability = MTBF / (MTBF + MTTR). Simulate with random exponential distributions in SimEvents."},
+    {label:"SimEvents",title:"Entity Priority and Routing",body:"SimEvents supports priority queues and conditional routing. Use these to model expedited orders, rework loops, and quality inspection reject/rework decisions."},
+  ],
+  videos:[
+    {title:"Production Simulation Software for Manufacturing (MathWorks)",url:"https://www.mathworks.com/videos/production-simulation-software-for-manufacturing-68930.html",src:"MathWorks",desc:"Re-watch with focus on production order scheduling and capacity planning scenarios."},
+    {title:"Optimizing Automotive Manufacturing with SimEvents",url:"https://www.mathworks.com/company/technical-articles/optimizing-automotive-manufacturing-processes-with-discrete-event-simulation.html",src:"MathWorks",desc:"Re-read: focus on how Daimler models shift schedules and downtime in their SimEvents model."},
+    {title:"ISA-95 Standard Overview (ISA)",url:"https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard",src:"ISA",desc:"Context reading: ISA-95 L3 (MES) specification for how production orders flow from ERP to factory floor."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study production order structure: quantity, routing, due date","Understand shift scheduling patterns in manufacturing","Learn MTBF/MTTR and availability calculation","Study exponential distribution for failure modeling"]},
+    {name:"Lab — Factory Operations Simulator",tasks:["Start from flow_line_W9.slx or line_scenarioD_W10.slx","Add Order Manager: inject exactly N entities per order (N=100)","Add completion counter — output flag when order complete","Implement Shift Profile: use time-based switch to scale service times by shift factor","Shift 1 (0-28800s): factor=1.0. Shift 2 (28800-57600s): factor=1.25 (slower). Shift 3 (57600-86400s): factor=1.5","Add Downtime Events: random exponential failures at bottleneck station, MTBF=3600s, MTTR=300s","Disable bottleneck server during downtime (set service rate = 0)","Run for 86400s (24h) with multiple orders","Record: order completion times, shift productivity, downtime impact","Calculate OEE: Availability × Performance × Quality"]},
+  ],
+  labSpec:{
+    params:["Production order size: 100 units","MTBF: 3600s (exponential). MTTR: 300s (exponential). Availability target: >90%","Shift 1 (0-8h): service time factor 1.0. Shift 2 (8-16h): 1.25. Shift 3 (16-24h): 1.5","Simulation: 86400 seconds (24 hours). Seed random generator for reproducibility: rng(42)"],
+    constraints:["Order completion must be event-driven (use SimEvents counter, not time-based check)","Downtime must use random exponential distribution — not deterministic intervals","Shift factor must multiply service times dynamically — not just reduce arrival rate","OEE calculation must use SimEvents statistics (not manual count)"],
+    problems:["Your target is 100 units/order. At Shift 3 capacity (1.5× service time), how many orders can you complete in 24h? Does simulation match theory?","An unplanned breakdown occurs at t=14400s during Shift 2. How long is order fulfillment delayed? Calculate and verify with simulation.","If you could invest in one improvement — reduce MTTR from 300s to 150s, or increase Shift 3 staffing to match Shift 1 — which gives better 24h throughput? Simulate both."],
+    outputs:["factory_ops_W13.slx with order manager, shift profile, and downtime","Order completion timeline plot (order start/end times for 5+ orders)","Shift productivity chart: bottles/hour across all three shifts","Downtime impact plot: queue length spike during breakdown","OEE calculation: Availability, Performance, Quality, and combined OEE","1-page analysis answering the three problem questions"],
+  }
+},
+{
+  id:14, title:"Final Project Integration — Robotics with Gazebo",
+  desc:"Add a robot pick-and-place cell using Gazebo. Simulink sends commands via ROS. Full Controls + Manufacturing + Robotics integration.",
+  deliverable:"Integrated model: Simulink control + SimEvents production + Gazebo robot cell",
+  overview:"The final system integration: you add a robotic arm cell at the end of your bottling line using Gazebo (ROS-based simulator). Simulink communicates with Gazebo via the ROS Toolbox, sending pick commands and receiving joint feedback. This creates a complete cyber-physical system — the same architecture used in real Industry 4.0 robot cells. Even if ROS setup is challenging, the conceptual integration and interface design are the key learning outcomes.",
+  concepts:[
+    {label:"Robotics",title:"ROS (Robot Operating System)",body:"ROS is a middleware framework for robotics — it provides topics (pub/sub messaging), services (request/reply), and a parameter server. Nodes are processes that communicate via topics. Simulink ROS Toolbox lets Simulink be a ROS node."},
+    {label:"Robotics",title:"Gazebo Simulation",body:"Gazebo is a 3D physics simulator used for robot testing. It integrates with ROS — Gazebo publishes joint states and subscribes to joint commands via ROS topics. You control the simulated robot from Simulink via ROS."},
+    {label:"Robotics",title:"Pick-and-Place Architecture",body:"A pick-and-place cell: (1) Vision/sensor detects bottle at pickup station. (2) Robot moves to pickup pose. (3) Gripper closes. (4) Robot moves to place pose. (5) Gripper opens. (6) Return to home. Each step is a Stateflow state."},
+    {label:"Integration",title:"Simulink ROS Toolbox",body:"Subscribe block: reads ROS topic into Simulink signal. Publish block: sends Simulink signal as ROS message. Use with JointState and JointTrajectory message types to control Gazebo robot arm."},
+  ],
+  videos:[
+    {title:"Getting Started with ROS in Simulink (MathWorks)",url:"https://www.mathworks.com/help/ros/ug/get-started-with-ros.html",src:"MathWorks Docs",desc:"Official tutorial for Simulink ROS Toolbox setup — covers connecting MATLAB to ROS, subscribe/publish blocks, and testing with a simple robot."},
+    {title:"Simscape Onramp (if not completed)",url:"https://matlabacademy.mathworks.com/details/simscape-onramp/simscape",src:"MathWorks Academy",desc:"Re-reference: Simscape multi-body concepts apply to robot arm modeling if ROS/Gazebo setup is unavailable."},
+    {title:"Modeling State Machines with Stateflow",url:"https://www.youtube.com/watch?v=rUeMUCrlxP0",src:"YouTube / MathWorks",desc:"Re-watch: the pick-and-place sequence is a state machine — apply Stateflow patterns from Weeks 4-5 to the robot motion sequence."},
+  ],
+  groups:[
+    {name:"Theory",tasks:["Study ROS concepts: nodes, topics, messages, services","Understand Simulink ROS Toolbox: Subscribe/Publish blocks","Study Gazebo architecture: world file, robot URDF, physics engine","Review pick-and-place motion sequence as a state machine"]},
+    {name:"Lab — Robot Pick-and-Place Cell",tasks:["Install ROS Toolbox for Simulink (or use ROS 2 with Simulink)","Launch Gazebo with a simple robot arm (use MathWorks example: KUKA lbr iiwa or ABB IRB)","Create Simulink model: Subscribe to /joint_states topic","Build pick-and-place Stateflow chart: Home→MoveToPickup→Grasp→MoveToPlace→Release→Home","Add joint trajectory publisher: Publish to /joint_trajectory topic","Create triggering interface: SimEvents 'bottle ready' signal → robot command","Connect to production line: robot fires when output queue has ≥1 entity","Run: production line fills bottles, robot palletizes at end","Verify ROS message timing matches Simulink simulation step","Document full architecture diagram: SimEvents → Stateflow → ROS → Gazebo"]},
+  ],
+  labSpec:{
+    params:["Robot: KUKA lbr iiwa 7 or equivalent (from MathWorks ROS examples)","Pick position: fixed (x=0.5, y=0.3, z=0.4m in robot base frame)","Place position: fixed (x=-0.5, y=0.3, z=0.2m)","Cycle time target: < 8 seconds per bottle","ROS publish rate: 10 Hz"],
+    constraints:["Robot command must come from production line signal — not a manual trigger","Stateflow must manage robot sequence — not a script","If Gazebo setup is unavailable, substitute with Simulink Multibody or provide full ROS interface design document","Safety: robot must not move until 'bottle_ready' signal is active"],
+    problems:["The robot cycle time is 8s but the line produces a bottle every 6s. What happens to the queue? Calculate queue growth rate.","Design a dual-robot cell (two robots alternating). How does the Stateflow machine need to change? Sketch the state diagram.","What ROS message type would you use to command a gripper open/close? Research and document the answer."],
+    outputs:["robot_integration_W14.slx — full integrated Simulink model","Architecture diagram: full system from SimEvents entities to Gazebo joint commands","ROS topic map: all topics subscribed/published with message types","Stateflow pick-and-place state machine diagram","Simulation video or screenshot sequence showing one full pick-and-place cycle","Integration report: 1-2 pages covering architecture decisions and problem question answers"],
+  }
+},
+{
+  id:15, title:"Review + Final Documentation",
+  desc:"Complete and document your Smart Factory Digital Twin. Integrate all subsystems and deliver the full final project.",
+  deliverable:"Complete Smart Factory Digital Twin — all subsystems integrated and documented",
+  overview:"This is your capstone week. You will finalize all subsystems, integrate them into a top-level model, and produce professional documentation. The goal is a portfolio-quality deliverable that demonstrates competency across controls engineering, manufacturing simulation, robotics, and Industry 4.0 architecture — the exact skillset that digital twin and automation engineers are hired for.",
+  concepts:[
+    {label:"Systems",title:"System-of-Systems Architecture",body:"Your final model is a System of Systems (SoS): multiple independently operable subsystems (filling station, conveyor line, robot cell, supervisory controller) that interact to provide capabilities beyond any individual system."},
+    {label:"Documentation",title:"MBSE Documentation",body:"Model-Based Systems Engineering documents through the model, not around it. Your model IS the specification. Supplement with: (1) Architecture diagram (block diagram of subsystems), (2) Interface Control Document (signals between subsystems), (3) Verification matrix (requirements vs test evidence)."},
+    {label:"PLM",title:"PTC Windchill (Conceptual)",body:"Windchill manages the lifecycle of your design: Design → Simulate → Validate → Release → Maintain. Version control of .slx files, BOM management, change orders (ECO), and requirements traceability. For your project, represent this as a lifecycle workflow diagram."},
+    {label:"Validation",title:"ANSYS Validation (Conceptual)",body:"Before manufacturing the bottling plant, validate structural components with FEA (ANSYS Mechanical for conveyor frames) and thermal systems with CFD (ANSYS Fluent for oven uniformity). Document which analyses you would run and why."},
+  ],
+  videos:[
+    {title:"Getting Started with Stateflow (review)",url:"https://www.youtube.com/watch?v=cXnT5-zY3YI",src:"YouTube / MathWorks",desc:"Re-watch as you finalize control logic — ensure all state machines are correct."},
+    {title:"ISA-95 Standard Reference",url:"https://www.isa.org/standards-and-publications/isa-standards/isa-95-standard",src:"ISA",desc:"Final reference for your ISA-95 architecture documentation."},
+    {title:"Industry 4.0 Automation Pyramid Explained",url:"https://www.youtube.com/watch?v=EPkC6UwjvqE",src:"YouTube",desc:"Re-watch: use to create your final ISA-95 system mapping in your documentation."},
+  ],
+  groups:[
+    {name:"Final Deliverable Checklist",tasks:[
+      "SolidWorks mechanical layout complete (or block-diagram equivalent)",
+      "Simscape physical systems complete — Bottle Filling Station (W6)",
+      "Stateflow control logic complete — tank fill + conveyor + sorting (W4-W7)",
+      "SimEvents production model complete — 5-station line + scheduling (W9-W13)",
+      "Gazebo robot cell complete (or architecture document if setup unavailable) (W14)",
+      "IoT architecture documented — ThingSpeak dashboard active (W12)",
+      "PLM lifecycle flow documented — Windchill workflow diagram (concept)",
+      "ANSYS validation approach documented — which analyses, why, expected outputs",
+      "ISA-95 system map — all subsystems mapped to pyramid levels",
+      "Final integrated top-level Simulink model: smart_factory_digital_twin_FINAL.slx",
+      "Final report written (5-10 pages): architecture, design decisions, results",
+      "Final presentation prepared (10-15 slides)",
+    ]},
+  ],
+  labSpec:{
+    params:["Top-level model must reference all subsystem models via Model Reference blocks","All subsystems must communicate via defined interface signals (document in ICD)","Final simulation: 24-hour run demonstrating all subsystems operating together","Report format: cover page, table of contents, executive summary, section per week's subsystem"],
+    constraints:["All subsystem .slx files must be version-controlled (Git or MATLAB Drive folder with dated versions)","Final model must run without errors on a clean MATLAB path","Interface signals must be documented in a table: signal name, source, destination, units, data type","ANSYS and Windchill sections may be conceptual (no license required) but must be technically specific"],
+    problems:["Your supervisory controller detects a simultaneous fault in the robot cell AND a low-production alert. What is the priority? How does the supervisory state machine resolve this? Document the conflict resolution logic.","If this were a real deployment: which subsystem would you validate with ANSYS FEA first, and what load case would you analyze? Justify.","Describe the Windchill change order process if the Fill station service time changes from 6s to 4s (new equipment). What documents change? What is re-validated?"],
+    outputs:["smart_factory_digital_twin_FINAL.slx — top-level integrated model","Interface Control Document (ICD): signal table with all inter-subsystem signals","ISA-95 system map diagram","PLM lifecycle workflow diagram (Windchill concept)","ANSYS validation plan document (which analyses, load cases, acceptance criteria)","Final Report (5-10 pages): professional quality, diagrams, simulation results","Final Presentation (10-15 slides): suitable for a technical audience"],
+  }
+},
+];
+
+// ─── STATE ────────────────────────────────────────────────────────────────────
+let state = loadState();
+function loadState(){try{const s=localStorage.getItem('dft_v2');return s?JSON.parse(s):buildDefault();}catch{return buildDefault();}}
+function buildDefault(){
+  const s={weeks:{}};
+  WEEKS.forEach(w=>{
+    s.weeks[w.id]={weekNote:'',weekImages:[],tasks:{}};
+    w.groups.forEach(g=>g.tasks.forEach((t,ti)=>{s.weeks[w.id].tasks[`${g.name}-${ti}`]={done:false,note:'',images:[]};}));
+  });
+  return s;
+}
+function saveState(){localStorage.setItem('dft_v2',JSON.stringify(state));}
+function getWS(wid){if(!state.weeks[wid])state.weeks[wid]={weekNote:'',weekImages:[],tasks:{}};return state.weeks[wid];}
+function tk(g,ti){return `${g}-${ti}`;}
+
+// ─── PROGRESS ────────────────────────────────────────────────────────────────
+function weekProg(wid){
+  const w=WEEKS.find(x=>x.id===wid),ws=getWS(wid);
+  let total=0,done=0;
+  w.groups.forEach(g=>g.tasks.forEach((_,ti)=>{total++;if((ws.tasks[tk(g.name,ti)]||{}).done)done++;}));
+  return{total,done,pct:total>0?Math.round(done/total*100):0};
+}
+function weekStatus(wid){const p=weekProg(wid);if(p.done===0)return'not-started';if(p.done===p.total)return'complete';return'in-progress';}
+function globalStats(){
+  let tt=0,dt=0,comp=0,inp=0;
+  WEEKS.forEach(w=>{const s=weekStatus(w.id);if(s==='complete')comp++;if(s==='in-progress')inp++;const p=weekProg(w.id);tt+=p.total;dt+=p.done;});
+  return{tt,dt,comp,inp};
+}
+
+// ─── SIDEBAR ────────────────────────────────────────────────────────────────
+let activeView='dashboard';
+function renderSidebar(){
+  const sb=document.getElementById('sidebar');
+  let h=`<div class="sb-lbl">Navigation</div>`;
+  h+=`<div class="sb-item ${activeView==='dashboard'?'active':''}" onclick="showDashboard()"><span class="wn">&#9632;</span>Dashboard</div>`;
+  h+=`<div class="sb-lbl" style="margin-top:.5rem">Weeks</div>`;
+  WEEKS.forEach(w=>{
+    const p=weekProg(w.id),st=weekStatus(w.id);
+    const fc=st==='complete'?'var(--success)':st==='in-progress'?'var(--accent)':'var(--rule-strong)';
+    h+=`<div class="sb-item ${activeView===w.id?'active':''}" onclick="showWeek(${w.id})">
+      <span class="wn">W${String(w.id).padStart(2,'0')}</span>
+      <span style="flex:1;line-height:1.3;font-size:13px">${w.title.split('—')[0].trim().split('+')[0].trim()}</span>
+      <div class="sb-pb"><div class="f" style="width:${p.pct}%;background:${fc}"></div></div>
+    </div>`;
+  });
+  sb.innerHTML=h;
+}
+
+// ─── DASHBOARD ────────────────────────────────────────────────────────────────
+function renderDashboard(){
+  const gs=globalStats();
+  document.getElementById('stat-complete').textContent=gs.comp;
+  document.getElementById('stat-inprog').textContent=gs.inp;
+  const pct=gs.tt>0?Math.round(gs.dt/gs.tt*100):0;
+  document.getElementById('stat-tasks').textContent=pct+'%';
+  document.getElementById('overall-pct').textContent=`${gs.dt} / ${gs.tt} tasks`;
+  document.getElementById('overall-bar').style.width=pct+'%';
+  const grid=document.getElementById('weeks-grid');
+  grid.innerHTML=WEEKS.map(w=>{
+    const p=weekProg(w.id),st=weekStatus(w.id),fc=st==='complete'?'complete':st==='in-progress'?'in-progress':'';
+    return`<div class="week-card ${fc}" onclick="showWeek(${w.id})">
+      <div class="ct"><span class="wb">Week ${w.id}</span><div class="sd ${fc}"></div></div>
+      <h3>${w.title}</h3>
+      <div class="mp"><div class="f ${fc}" style="width:${p.pct}%"></div></div>
+      <div class="cm"><span>${p.done}/${p.total} tasks</span><span>${p.pct}%</span></div>
+    </div>`;
+  }).join('');
+}
+
+// ─── WEEK DETAIL ────────────────────────────────────────────────────────────
+function renderWeekDetail(wid){
+  const w=WEEKS.find(x=>x.id===wid),ws=getWS(wid),p=weekProg(wid);
+  const el=document.getElementById(`wv-${wid}`);
+  if(!el)return;
+
+  // Build materials tab
+  let overviewHTML=`<div class="mat-overview">
+    <h4>Week Overview</h4>
+    <p>${w.overview}</p>
+  </div>`;
+
+  let conceptsHTML=`<div class="sec-title">Key Concepts</div><div class="concepts-grid">`;
+  w.concepts.forEach(c=>{
+    conceptsHTML+=`<div class="concept-card">
+      <div class="cc-label">${c.label}</div>
+      <h5>${c.title}</h5>
+      <p>${c.body}</p>
+    </div>`;
+  });
+  conceptsHTML+=`</div>`;
+
+  let videosHTML=`<div class="sec-title">Video Resources</div>`;
+  w.videos.forEach(v=>{
+    videosHTML+=`<div class="video-card">
+      <div class="vicon">&#9654;</div>
+      <div class="vinfo">
+        <a class="vtitle" href="${v.url}" target="_blank">${v.title}</a>
+        <div class="vsrc">${v.src}</div>
+        <div class="vdesc">${v.desc}</div>
+      </div>
+    </div>`;
+  });
+
+  // Lab spec
+  const ls=w.labSpec;
+  let labHTML=`<div class="sec-title">Lab Specification</div>
+  <div class="lab-spec">
+    <div class="lab-spec-hdr"><span class="ls-icon">&#9881;</span><h4>Lab Parameters, Constraints & Outputs</h4></div>
+    <div class="lab-spec-body">`;
+
+  if(ls.params&&ls.params.length){
+    labHTML+=`<div class="spec-block"><div class="spec-label params">Parameters</div><ul class="spec-list params">`;
+    ls.params.forEach(p=>labHTML+=`<li>${p}</li>`);
+    labHTML+=`</ul></div>`;
+  }
+  if(ls.constraints&&ls.constraints.length){
+    labHTML+=`<div class="spec-block"><div class="spec-label constraints">Constraints</div><ul class="spec-list constraints">`;
+    ls.constraints.forEach(c=>labHTML+=`<li>${c}</li>`);
+    labHTML+=`</ul></div>`;
+  }
+  if(ls.problems&&ls.problems.length){
+    labHTML+=`<div class="spec-block"><div class="spec-label problems">Problems to Solve</div><ul class="spec-list problems">`;
+    ls.problems.forEach(p=>labHTML+=`<li>${p}</li>`);
+    labHTML+=`</ul></div>`;
+  }
+  if(ls.outputs&&ls.outputs.length){
+    labHTML+=`<div class="spec-block"><div class="spec-label outputs">Required Outputs</div><ul class="spec-list outputs">`;
+    ls.outputs.forEach(o=>labHTML+=`<li>${o}</li>`);
+    labHTML+=`</ul></div>`;
+  }
+  labHTML+=`</div></div>`;
+
+  // Tasks tab
+  let groupsHTML='';
+  w.groups.forEach(g=>{
+    const dc=g.tasks.filter((_,ti)=>(ws.tasks[tk(g.name,ti)]||{}).done).length;
+    groupsHTML+=`<div class="task-group">
+      <div class="tg-hdr" onclick="toggleGroup(this)">
+        <h4>${g.name}</h4><span class="gc">${dc}/${g.tasks.length}</span><span class="chev">&#9660;</span>
+      </div>
+      <div class="tg-body">
+        ${g.tasks.map((t,ti)=>{
+          const ttk=ws.tasks[tk(g.name,ti)]||{done:false,note:'',images:[]};
+          const imgs=(ttk.images||[]).map((img,ii)=>`<div class="img-thumb"><img src="${img}"><button class="rm" onclick="rmTaskImg(${wid},'${g.name}',${ti},${ii})">&#215;</button></div>`).join('');
+          return`<div class="task-item ${ttk.done?'done':''}" id="ti-${wid}-${g.name.replace(/\s/g,'_')}-${ti}">
+            <div class="task-cb ${ttk.done?'checked':''}" onclick="toggleTask(${wid},'${g.name}',${ti},this)"></div>
+            <div class="task-content">
+              <div class="task-lbl" onclick="toggleTask(${wid},'${g.name}',${ti},this.previousElementSibling)">${t}</div>
+              <span class="note-toggle" onclick="toggleNote(this)">&#43; note</span>
+              <div class="note-area ${ttk.note||(ttk.images&&ttk.images.length)?'open':''}">
+                <div class="editor-toolbar">
+                  <button class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+                  <button class="tb-btn" onclick="fmt('italic')"><i>I</i></button>
+                  <button class="tb-btn" onclick="fmt('underline')"><u>U</u></button>
+                  <div style="width:1px;background:var(--rule);margin:3px 3px;align-self:stretch"></div>
+                  <button class="tb-btn" onclick="fmt('insertUnorderedList')">&#8226; list</button>
+                  <button class="tb-btn" onclick="fmt('insertOrderedList')">1. list</button>
+                  <div style="width:1px;background:var(--rule);margin:3px 3px;align-self:stretch"></div>
+                  <button class="tb-btn" onclick="fmtCode()">code</button>
+                </div>
+                <div class="editor-area" contenteditable="true"
+                  data-wid="${wid}" data-g="${g.name}" data-ti="${ti}"
+                  oninput="saveTaskNote(this)"
+                  onpaste="hPaste(event,this)">${ttk.note||''}</div>
+                <div class="imgs-grid" id="ti-imgs-${wid}-${g.name.replace(/\s/g,'_')}-${ti}">${imgs}</div>
+                <div class="img-zone" onclick="triggerTaskImg(${wid},'${g.name}',${ti})">
+                  <span class="zt">&#43; add image</span>
+                  <input type="file" accept="image/*" multiple onchange="handleTaskImgs(event,${wid},'${g.name}',${ti})">
+                </div>
+              </div>
+            </div>
+          </div>`;
+        }).join('')}
+      </div>
+    </div>`;
+  });
+
+  // Week notes tab
+  const wImgs=(ws.weekImages||[]).map((img,ii)=>`<div class="img-thumb"><img src="${img}"><button class="rm" onclick="rmWeekImg(${wid},${ii})">&#215;</button></div>`).join('');
+  const notesHTML=`
+    <div class="sec-title">Week Summary Notes</div>
+    <div class="wk-notes-wrap">
+      <div class="editor-toolbar">
+        <button class="tb-btn" onclick="fmt('bold')"><b>B</b></button>
+        <button class="tb-btn" onclick="fmt('italic')"><i>I</i></button>
+        <button class="tb-btn" onclick="fmt('underline')"><u>U</u></button>
+        <div style="width:1px;background:var(--rule);margin:3px 3px;align-self:stretch"></div>
+        <button class="tb-btn" onclick="fmt('insertUnorderedList')">&#8226; list</button>
+        <button class="tb-btn" onclick="fmt('insertOrderedList')">1. list</button>
+        <div style="width:1px;background:var(--rule);margin:3px 3px;align-self:stretch"></div>
+        <button class="tb-btn" onclick="fmtCode()">code</button>
+        <button class="tb-btn" onclick="fmt('formatBlock','h3')">H3</button>
+      </div>
+      <div class="editor-area" contenteditable="true" id="wn-${wid}" oninput="saveWeekNote(${wid},this)" onpaste="hPaste(event,this)" style="min-height:140px">${ws.weekNote||''}</div>
+    </div>
+    <div class="sec-title">Week Images & Screenshots</div>
+    <div class="imgs-grid" id="wi-${wid}">${wImgs}</div>
+    <div class="img-zone" onclick="triggerWeekImg(${wid})">
+      <span class="zt">&#43; drag &amp; drop or click to add images / screenshots</span>
+      <input type="file" id="wf-${wid}" accept="image/*" multiple onchange="handleWeekImgs(event,${wid})">
+    </div>`;
+
+  const pbar=p.done===p.total&&p.total>0?'var(--success)':'var(--accent)';
+  el.innerHTML=`
+    <div class="det-hdr">
+      <div class="breadcrumb" onclick="showDashboard()">&#8592; Dashboard</div>
+      <span class="week-tag">Week ${wid}</span>
+      <h2>${w.title}</h2>
+      <p class="wdesc">${w.desc}</p>
+      <div style="margin-top:10px">
+        <div style="height:6px;background:var(--rule);border-radius:3px;overflow:hidden;max-width:360px">
+          <div id="wpb-${wid}" style="height:100%;width:${p.pct}%;background:${pbar};border-radius:3px;transition:width .3s"></div>
+        </div>
+        <p style="font-size:12px;color:var(--ink-faint);margin-top:5px;font-family:var(--font-mono)" id="wpl-${wid}">${p.done}/${p.total} tasks — ${p.pct}%</p>
+      </div>
+    </div>
+    ${w.deliverable?`<div class="deliverable-box"><div class="dlabel">Deliverable</div><p>${w.deliverable}</p></div>`:''}
+    <div class="tab-bar">
+      <button class="tab-btn active" onclick="switchTab(this,'mat-${wid}')">&#128214; Materials</button>
+      <button class="tab-btn" onclick="switchTab(this,'tasks-${wid}')">&#10003; Tasks</button>
+      <button class="tab-btn" onclick="switchTab(this,'notes-${wid}')">&#128221; Notes</button>
+    </div>
+    <div id="mat-${wid}" class="tab-pane active">${overviewHTML}${conceptsHTML}${videosHTML}${labHTML}</div>
+    <div id="tasks-${wid}" class="tab-pane">${groupsHTML}</div>
+    <div id="notes-${wid}" class="tab-pane">${notesHTML}</div>
+    <div style="margin-top:2rem;padding-top:1rem;border-top:1px solid var(--rule);display:flex;gap:8px">
+      <button class="btn sm" onclick="exportWeek(${wid})">&#8595; Export this week</button>
+    </div>`;
+}
+
+// ─── TABS ────────────────────────────────────────────────────────────────────
+function switchTab(btn, paneId){
+  const tabBar=btn.parentElement;
+  tabBar.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');
+  const container=tabBar.parentElement;
+  container.querySelectorAll('.tab-pane').forEach(p=>p.classList.remove('active'));
+  const pane=document.getElementById(paneId);
+  if(pane)pane.classList.add('active');
+}
+
+// ─── NAVIGATION ────────────────────────────────────────────────────────────
+function showDashboard(){
+  activeView='dashboard';
+  document.getElementById('dash-view').classList.remove('hidden');
+  document.querySelectorAll('.week-detail').forEach(e=>e.classList.remove('active'));
+  renderDashboard();renderSidebar();
+}
+function showWeek(wid){
+  activeView=wid;
+  document.getElementById('dash-view').classList.add('hidden');
+  document.querySelectorAll('.week-detail').forEach(e=>e.classList.remove('active'));
+  const el=document.getElementById(`wv-${wid}`);
+  el.classList.add('active');
+  renderWeekDetail(wid);renderSidebar();
+  window.scrollTo({top:0,behavior:'smooth'});
+}
+
+// ─── TASK INTERACTIONS ────────────────────────────────────────────────────────
+function toggleTask(wid,gName,ti,cbEl){
+  const ws=getWS(wid),key=tk(gName,ti);
+  if(!ws.tasks[key])ws.tasks[key]={done:false,note:'',images:[]};
+  ws.tasks[key].done=!ws.tasks[key].done;
+  saveState();
+  const isDone=ws.tasks[key].done;
+  cbEl.classList.toggle('checked',isDone);
+  const item=cbEl.closest('.task-item');
+  if(item)item.classList.toggle('done',isDone);
+  const body=cbEl.closest('.tg-body');
+  if(body){
+    const hdr=body.previousElementSibling;
+    const c=body.querySelectorAll('.task-cb.checked').length;
+    const t=body.querySelectorAll('.task-cb').length;
+    hdr.querySelector('.gc').textContent=`${c}/${t}`;
+  }
+  const p=weekProg(wid);
+  const pb=document.getElementById(`wpb-${wid}`);
+  const pl=document.getElementById(`wpl-${wid}`);
+  if(pb){pb.style.width=p.pct+'%';pb.style.background=p.done===p.total&&p.total>0?'var(--success)':'var(--accent)';}
+  if(pl)pl.textContent=`${p.done}/${p.total} tasks — ${p.pct}%`;
+  renderSidebar();
+  if(activeView==='dashboard')renderDashboard();
+}
+function toggleGroup(hEl){hEl.classList.toggle('collapsed');hEl.nextElementSibling.classList.toggle('hidden');}
+function toggleNote(el){const a=el.nextElementSibling;a.classList.toggle('open');el.textContent=a.classList.contains('open')?'− note':'+ note';}
+function saveTaskNote(el){
+  const wid=parseInt(el.dataset.wid),g=el.dataset.g,ti=parseInt(el.dataset.ti),ws=getWS(wid),key=tk(g,ti);
+  if(!ws.tasks[key])ws.tasks[key]={done:false,note:'',images:[]};
+  ws.tasks[key].note=el.innerHTML;saveState();
+}
+function saveWeekNote(wid,el){getWS(wid).weekNote=el.innerHTML;saveState();}
+function fmt(cmd,val){document.execCommand(cmd,false,val||null);}
+function fmtCode(){const sel=window.getSelection();if(!sel.rangeCount)return;const r=sel.getRangeAt(0);const c=document.createElement('code');try{r.surroundContents(c);}catch{document.execCommand('insertHTML',false,`<code>${sel.toString()}</code>`);}}
+function hPaste(e,el){e.preventDefault();document.execCommand('insertText',false,e.clipboardData.getData('text/plain'));}
+
+// ─── IMAGES ────────────────────────────────────────────────────────────────
+function triggerTaskImg(wid,g,ti){document.querySelector(`#ti-${wid}-${g.replace(/\s/g,'_')}-${ti} .img-zone input`)?.click();}
+function triggerWeekImg(wid){document.getElementById(`wf-${wid}`)?.click();}
+function handleTaskImgs(e,wid,g,ti){
+  Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{const ws=getWS(wid),key=tk(g,ti);if(!ws.tasks[key])ws.tasks[key]={done:false,note:'',images:[]};ws.tasks[key].images.push(ev.target.result);saveState();refreshTaskImgs(wid,g,ti);};r.readAsDataURL(f);});
+}
+function refreshTaskImgs(wid,g,ti){
+  const ws=getWS(wid),imgs=(ws.tasks[tk(g,ti)]||{}).images||[];
+  const grid=document.getElementById(`ti-imgs-${wid}-${g.replace(/\s/g,'_')}-${ti}`);
+  if(grid)grid.innerHTML=imgs.map((img,ii)=>`<div class="img-thumb"><img src="${img}"><button class="rm" onclick="rmTaskImg(${wid},'${g}',${ti},${ii})">&#215;</button></div>`).join('');
+}
+function rmTaskImg(wid,g,ti,ii){const ws=getWS(wid);ws.tasks[tk(g,ti)].images.splice(ii,1);saveState();refreshTaskImgs(wid,g,ti);}
+function handleWeekImgs(e,wid){Array.from(e.target.files).forEach(f=>{const r=new FileReader();r.onload=ev=>{const ws=getWS(wid);if(!ws.weekImages)ws.weekImages=[];ws.weekImages.push(ev.target.result);saveState();refreshWeekImgs(wid);};r.readAsDataURL(f);});}
+function refreshWeekImgs(wid){const ws=getWS(wid);const grid=document.getElementById(`wi-${wid}`);if(grid)grid.innerHTML=(ws.weekImages||[]).map((img,ii)=>`<div class="img-thumb"><img src="${img}"><button class="rm" onclick="rmWeekImg(${wid},${ii})">&#215;</button></div>`).join('');}
+function rmWeekImg(wid,ii){const ws=getWS(wid);ws.weekImages.splice(ii,1);saveState();refreshWeekImgs(wid);}
+
+// ─── EXPORT ────────────────────────────────────────────────────────────────
+let curExpWeek=null;
+function openExportModal(){curExpWeek=null;document.getElementById('export-modal').classList.add('open');}
+function exportWeek(wid){curExpWeek=wid;document.getElementById('export-scope').value='current';document.getElementById('export-modal').classList.add('open');}
+function closeExportModal(){document.getElementById('export-modal').classList.remove('open');}
+function runExport(){
+  const fmt=document.querySelector('input[name="efmt"]:checked').value;
+  const scope=document.getElementById('export-scope').value;
+  let weeks=WEEKS;
+  if(scope==='completed')weeks=WEEKS.filter(w=>weekStatus(w.id)==='complete');
+  else if(scope==='current')weeks=curExpWeek?WEEKS.filter(w=>w.id===curExpWeek):(activeView!=='dashboard'?WEEKS.filter(w=>w.id===activeView):[WEEKS[0]]);
+  if(fmt==='clipboard')exportHTML(weeks);
+  else if(fmt==='docx')exportRTF(weeks);
+  else exportText(weeks);
+  closeExportModal();
+}
+function buildHTMLExport(weeks){
+  let h=`<html><head><meta charset="UTF-8"><style>body{font-family:Calibri,sans-serif;max-width:800px;margin:0 auto;padding:20px}h1{font-size:22px;border-bottom:2px solid #1a4a8a;padding-bottom:8px}h2{font-size:18px;color:#1a4a8a;margin-top:24px}h3{font-size:14px;color:#444;margin:12px 0 4px}.wb{background:#e8eef8;color:#1a4a8a;padding:2px 8px;border-radius:3px;font-size:11px;font-family:monospace}.deliv{background:#fdf0e4;border:1px solid #e8c090;border-radius:4px;padding:8px 12px;margin:8px 0}.overview{background:#f5f5f5;border-left:3px solid #1a4a8a;padding:10px 14px;margin:10px 0}.concept{border:1px solid #ddd;border-radius:4px;padding:10px;margin:6px 0}.lab{border:1px solid #333;border-radius:4px;overflow:hidden;margin:12px 0}.lab-hdr{background:#1a1916;color:white;padding:8px 12px}.spec-lbl{font-size:10px;letter-spacing:.08em;text-transform:uppercase;margin:8px 0 4px}.task{display:flex;gap:8px;padding:4px 0;border-bottom:1px solid #eee}.cb{width:14px;height:14px;border:1.5px solid #999;border-radius:2px;display:inline-block;flex-shrink:0;margin-top:2px}.cb.done{background:#2d6a4f;border-color:#2d6a4f}.tl.done{text-decoration:line-through;color:#999}.note{font-size:13px;color:#555;margin:4px 0 4px 22px;border-left:2px solid #ddd;padding-left:8px}img{max-width:400px;border-radius:4px;margin:4px 0}</style></head><body>`;
+  h+=`<h1>Digital Factory Twin — Course Notes</h1><p style="color:#666;font-size:13px">Exported: ${new Date().toLocaleDateString()}</p>`;
+  weeks.forEach(w=>{
+    const ws=getWS(w.id),p=weekProg(w.id);
+    h+=`<h2><span class="wb">Week ${w.id}</span> ${w.title}</h2>`;
+    if(w.deliverable)h+=`<div class="deliv"><strong>Deliverable:</strong> ${w.deliverable}</div>`;
+    h+=`<div class="overview"><strong>Overview</strong><br>${w.overview}</div>`;
+    h+=`<h3>Key Concepts</h3>`;
+    w.concepts.forEach(c=>h+=`<div class="concept"><strong>${c.title}</strong> (${c.label})<br><small>${c.body}</small></div>`);
+    h+=`<h3>Video Resources</h3><ul>`;
+    w.videos.forEach(v=>h+=`<li><a href="${v.url}">${v.title}</a> — ${v.src}<br><small>${v.desc}</small></li>`);
+    h+=`</ul>`;
+    const ls=w.labSpec;
+    h+=`<div class="lab"><div class="lab-hdr">Lab Specification</div><div style="padding:10px">`;
+    if(ls.params){h+=`<div class="spec-lbl" style="color:#1a4a8a">Parameters</div><ul>`;ls.params.forEach(x=>h+=`<li>${x}</li>`);h+=`</ul>`;}
+    if(ls.constraints){h+=`<div class="spec-lbl" style="color:#b5621a">Constraints</div><ul>`;ls.constraints.forEach(x=>h+=`<li>${x}</li>`);h+=`</ul>`;}
+    if(ls.problems){h+=`<div class="spec-lbl" style="color:#8b3a9e">Problems to Solve</div><ul>`;ls.problems.forEach(x=>h+=`<li>${x}</li>`);h+=`</ul>`;}
+    if(ls.outputs){h+=`<div class="spec-lbl" style="color:#2d6a4f">Required Outputs</div><ul>`;ls.outputs.forEach(x=>h+=`<li>${x}</li>`);h+=`</ul>`;}
+    h+=`</div></div>`;
+    h+=`<h3>Tasks (${p.done}/${p.total})</h3>`;
+    w.groups.forEach(g=>{
+      h+=`<p><strong>${g.name}</strong></p>`;
+      g.tasks.forEach((t,ti)=>{
+        const ttk=ws.tasks[tk(g.name,ti)]||{done:false,note:'',images:[]};
+        h+=`<div class="task"><div class="cb ${ttk.done?'done':''}"></div><span class="tl ${ttk.done?'done':''}">${t}</span></div>`;
+        if(ttk.note)h+=`<div class="note">${ttk.note}</div>`;
+        (ttk.images||[]).forEach(img=>h+=`<div style="margin-left:22px"><img src="${img}"></div>`);
+      });
+    });
+    if(ws.weekNote)h+=`<h3>Week Notes</h3><div class="note">${ws.weekNote}</div>`;
+    (ws.weekImages||[]).forEach(img=>h+=`<img src="${img}" style="display:block;margin:8px 0">`);
+  });
+  h+=`</body></html>`;return h;
+}
+function exportHTML(weeks){
+  const h=buildHTMLExport(weeks);
+  navigator.clipboard.writeText(h).then(()=>showToast('HTML copied — paste into OneNote!')).catch(()=>{const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([h],{type:'text/html'})),download:'digital-twin-notes.html'});a.click();showToast('HTML file downloaded');});
+}
+function exportRTF(weeks){
+  let c=`{\\rtf1\\ansi\\deff0{\\fonttbl{\\f0 Calibri;}{\\f1 Calibri Light;}}\\widowctrl\\hyphauto\\fs24`;
+  c+=`{\\f1\\fs32\\b Digital Factory Twin — Course Notes\\par}{\\f0\\fs20 Exported: ${new Date().toLocaleDateString()}\\par\\par}`;
+  weeks.forEach(w=>{
+    const ws=getWS(w.id),p=weekProg(w.id);
+    c+=`{\\f1\\fs28\\b Week ${w.id}: ${w.title}\\par}`;
+    if(w.deliverable)c+=`{\\f0\\fs20\\b Deliverable: }{\\f0\\fs20 ${w.deliverable}\\par}`;
+    c+=`{\\f0\\fs20 Progress: ${p.done}/${p.total} (${p.pct}%)\\par\\par}`;
+    c+=`{\\f0\\fs22\\b Overview\\par}{\\f0\\fs20 ${w.overview.replace(/[{}\\]/g,'')}\\par\\par}`;
+    c+=`{\\f0\\fs22\\b Lab Spec\\par}`;
+    (w.labSpec.outputs||[]).forEach(o=>c+=`{\\f0\\fs20 \\bullet  ${o.replace(/[{}\\]/g,'')}\\par}`);
+    w.groups.forEach(g=>{
+      c+=`{\\f0\\fs20\\b ${g.name}\\par}`;
+      g.tasks.forEach((t,ti)=>{
+        const ttk=ws.tasks[tk(g.name,ti)]||{done:false,note:''};
+        c+=`{\\f0\\fs20 ${ttk.done?'[x]':'[ ]'} ${ttk.done?'\\strike ':''} ${t.replace(/[{}\\]/g,'')}${ttk.done?'\\strike0 ':''}\\par}`;
+        if(ttk.note){const pt=ttk.note.replace(/<[^>]*>/g,'').replace(/[{}\\]/g,'');if(pt.trim())c+=`{\\f0\\fs18\\cf3    ${pt}\\par}`;}
+      });
+    });
+    if(ws.weekNote){const pt=ws.weekNote.replace(/<[^>]*>/g,'').replace(/[{}\\]/g,'');if(pt.trim())c+=`{\\f0\\fs20\\b Week Notes:\\par}{\\f0\\fs20 ${pt}\\par}`;}
+    c+=`\\line\\line`;
+  });
+  c+=`}`;
+  const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([c],{type:'application/rtf'})),download:'digital-twin-notes.rtf'});a.click();
+  showToast('RTF downloaded — open in Word, paste to OneNote');
+}
+function exportText(weeks){
+  let t=`DIGITAL FACTORY TWIN — COURSE NOTES\nExported: ${new Date().toLocaleDateString()}\n${'='.repeat(50)}\n\n`;
+  weeks.forEach(w=>{
+    const ws=getWS(w.id),p=weekProg(w.id);
+    t+=`WEEK ${w.id}: ${w.title.toUpperCase()}\n${'-'.repeat(40)}\n${w.desc}\n`;
+    if(w.deliverable)t+=`Deliverable: ${w.deliverable}\n`;
+    t+=`Progress: ${p.done}/${p.total} (${p.pct}%)\n\nOVERVIEW\n${w.overview}\n\nKEY CONCEPTS\n`;
+    w.concepts.forEach(c=>t+=`  [${c.label}] ${c.title}: ${c.body}\n`);
+    t+=`\nVIDEO RESOURCES\n`;
+    w.videos.forEach(v=>t+=`  • ${v.title} — ${v.src}\n    ${v.url}\n    ${v.desc}\n`);
+    t+=`\nLAB SPEC\n`;
+    if(w.labSpec.params){t+='  Parameters:\n';w.labSpec.params.forEach(x=>t+=`    → ${x}\n`);}
+    if(w.labSpec.constraints){t+='  Constraints:\n';w.labSpec.constraints.forEach(x=>t+=`    ! ${x}\n`);}
+    if(w.labSpec.problems){t+='  Problems:\n';w.labSpec.problems.forEach(x=>t+=`    ? ${x}\n`);}
+    if(w.labSpec.outputs){t+='  Required Outputs:\n';w.labSpec.outputs.forEach(x=>t+=`    ✓ ${x}\n`);}
+    t+=`\nTASKS\n`;
+    w.groups.forEach(g=>{
+      t+=`  ${g.name.toUpperCase()}\n`;
+      g.tasks.forEach((task,ti)=>{const ttk=ws.tasks[tk(g.name,ti)]||{done:false,note:''};t+=`    ${ttk.done?'[x]':'[ ]'} ${task}\n`;if(ttk.note){const pt=ttk.note.replace(/<[^>]*>/g,'');if(pt.trim())t+=`         Note: ${pt}\n`;}});
+    });
+    if(ws.weekNote){const pt=ws.weekNote.replace(/<[^>]*>/g,'');if(pt.trim())t+=`\nWEEK NOTES\n${pt}\n`;}
+    t+=`\n${'='.repeat(50)}\n\n`;
+  });
+  navigator.clipboard.writeText(t).then(()=>showToast('Plain text copied!')).catch(()=>{const a=Object.assign(document.createElement('a'),{href:URL.createObjectURL(new Blob([t],{type:'text/plain'})),download:'digital-twin-notes.txt'});a.click();showToast('Text file downloaded');});
+}
+
+// ─── UTILS ────────────────────────────────────────────────────────────────
+function showToast(msg){const t=document.getElementById('toast');t.textContent=msg;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),3000);}
+function clearAllData(){if(confirm('Reset all progress, notes, and images?')){localStorage.removeItem('dft_v2');state=buildDefault();showDashboard();showToast('All data cleared.');}}
+document.getElementById('export-modal').addEventListener('click',function(e){if(e.target===this)closeExportModal();});
+
+// ─── INIT ────────────────────────────────────────────────────────────────
+function init(){
+  const wv=document.getElementById('week-views');
+  WEEKS.forEach(w=>{const d=document.createElement('div');d.className='week-detail';d.id=`wv-${w.id}`;wv.appendChild(d);});
+  renderSidebar();renderDashboard();
+}
+init();
+</script>
+</body>
+</html>
